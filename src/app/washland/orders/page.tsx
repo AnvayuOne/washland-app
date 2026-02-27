@@ -44,9 +44,9 @@ export default function OrdersPage() {
   useEffect(() => {
     const r = localStorage.getItem('userRole')
     const email = localStorage.getItem('userEmail')
-    
+
     if (r !== 'SUPER_ADMIN' && r !== 'washland') return router.push('/washland/login')
-    
+
     setUserRole(r || '')
     setUserEmail(email || '')
     setReady(true)
@@ -71,7 +71,12 @@ export default function OrdersPage() {
       const response = await fetch(`/api/admin/orders${params}`)
       if (response.ok) {
         const data = await response.json()
-        setOrders(data)
+        if (data.success && Array.isArray(data.orders)) {
+          setOrders(data.orders)
+        } else if (Array.isArray(data)) {
+          // Fallback if API changes to return array directly
+          setOrders(data)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error)
@@ -87,7 +92,7 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       })
-      
+
       if (response.ok) {
         fetchOrders() // Refresh the list
       } else {
@@ -127,11 +132,11 @@ export default function OrdersPage() {
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
-              <h1 style={{ 
-                fontSize: '2rem', 
-                fontWeight: '700', 
-                color: '#111827', 
-                marginBottom: '0.5rem' 
+              <h1 style={{
+                fontSize: '2rem',
+                fontWeight: '700',
+                color: '#111827',
+                marginBottom: '0.5rem'
               }}>
                 Order Management
               </h1>
@@ -399,31 +404,31 @@ const tableCellStyle = {
 // Icons
 const OrderIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8"/>
-    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-    <path d="M9 14L11 16L15 12"/>
+    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" />
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    <path d="M9 14L11 16L15 12" />
   </svg>
 )
 
 const ClockIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <polyline points="12,6 12,12 16,14"/>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12,6 12,12 16,14" />
   </svg>
 )
 
 const CheckCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-    <path d="M9 11l3 3L22 4"/>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <path d="M9 11l3 3L22 4" />
   </svg>
 )
 
 const CurrencyIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="1" x2="12" y2="23"/>
-    <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5C17 13.8807 15.8807 15 14.5 15H7"/>
-    <line x1="10" y1="1" x2="10" y2="5"/>
-    <line x1="14" y1="19" x2="14" y2="23"/>
+    <line x1="12" y1="1" x2="12" y2="23" />
+    <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5C17 13.8807 15.8807 15 14.5 15H7" />
+    <line x1="10" y1="1" x2="10" y2="5" />
+    <line x1="14" y1="19" x2="14" y2="23" />
   </svg>
 )

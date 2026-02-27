@@ -13,7 +13,8 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    phone: ""
+    phone: "",
+    referralCode: ""
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -43,7 +44,8 @@ export default function SignUpPage() {
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          phone: formData.phone
+          phone: formData.phone,
+          referralCode: formData.referralCode
         })
       })
 
@@ -84,7 +86,7 @@ export default function SignUpPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="card" style={{ maxWidth: "420px", width: "100%", textAlign: "center" }}>
           <div style={{ color: "#059669", marginBottom: "0.75rem" }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" strokeWidth="1.2" opacity="0.12"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="9" stroke="#059669" strokeWidth="1.2" opacity="0.12" /></svg>
           </div>
           <h2 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "0.5rem", color: "#111827" }}>
             Welcome aboard — Account created!
@@ -175,6 +177,7 @@ export default function SignUpPage() {
             />
           </div>
 
+
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="phone" style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
               Phone Number (Optional)
@@ -185,6 +188,28 @@ export default function SignUpPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "1rem" }}>
+            <label htmlFor="referralCode" style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
+              Referral Code (Optional)
+            </label>
+            <input
+              type="text"
+              id="referralCode"
+              name="referralCode"
+              value={formData.referralCode}
+              onChange={handleChange}
+              placeholder="Ex. JOHN123"
               style={{
                 width: "100%",
                 padding: "0.75rem",
@@ -243,12 +268,12 @@ export default function SignUpPage() {
           </div>
 
           {error && (
-            <div style={{ 
-              marginBottom: "1rem", 
-              padding: "0.75rem", 
-              backgroundColor: "#fef2f2", 
-              border: "1px solid #fecaca", 
-              color: "#dc2626", 
+            <div style={{
+              marginBottom: "1rem",
+              padding: "0.75rem",
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#dc2626",
               borderRadius: "0.5rem",
               fontSize: "0.875rem"
             }}>

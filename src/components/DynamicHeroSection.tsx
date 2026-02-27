@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 // Use a local default hero content so hero text/buttons render immediately without an API call
@@ -7,8 +8,7 @@ import AnimatedLaundryBackground from '@/components/AnimatedLaundryBackground';
 import HeroCarousel from './HeroCarousel';
 
 export default function DynamicHeroSection() {
-  // Local default hero content (no API fetch)
-  const heroContent = {
+  const [heroContent, setHeroContent] = useState({
     title: 'Premium Dry Cleaning & Laundry',
     subtitle: 'Convenient pickup & delivery in your area',
     description: 'Experience the convenience of professional cleaning with fast turnaround, expert stain removal and free pickup within 12 km.',
@@ -17,40 +17,54 @@ export default function DynamicHeroSection() {
     secondaryBtnText: 'Find Stores',
     secondaryBtnLink: '/locations',
     offers: [],
-  }
+  })
+
+  useEffect(() => {
+    fetch('/api/public/hero')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setHeroContent(prev => ({
+            ...prev,
+            ...data.data
+          }))
+        }
+      })
+      .catch(err => console.error('Failed to fetch hero content:', err))
+  }, [])
 
   return (
-    <main style={{ 
-      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #1d3557 100%)', 
-      position: 'relative', 
+    <main style={{
+      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #1d3557 100%)',
+      position: 'relative',
       overflow: 'hidden',
       minHeight: '80vh'
     }}>
       {/* Background Pattern */}
-      <div style={{ 
-        position: 'absolute', 
-        inset: 0, 
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)', 
-        backgroundSize: '40px 40px' 
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)',
+        backgroundSize: '40px 40px'
       }} />
-      
+
       <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1rem', position: 'relative' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: '3rem', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '3rem',
+          alignItems: 'center',
           minHeight: '80vh',
           padding: '2rem 0'
         }} className="hero-grid">
-          
+
           {/* Left Content */}
           <div style={{ padding: '2rem 0' }}>
-            
-            <h1 style={{ 
-              fontSize: '3rem', 
-              fontWeight: '700', 
-              color: 'white', 
+
+            <h1 style={{
+              fontSize: '3rem',
+              fontWeight: '700',
+              color: 'white',
               marginBottom: '1rem',
               lineHeight: '1.1',
               textShadow: '0 2px 4px rgba(0,0,0,0.3)'
@@ -58,11 +72,11 @@ export default function DynamicHeroSection() {
               {heroContent.title}<br />
               <span style={{ color: '#60a5fa' }}>{heroContent.subtitle}</span>
             </h1>
-            
+
             {heroContent.description && (
-              <p style={{ 
-                fontSize: '1.125rem', 
-                color: '#dbeafe', 
+              <p style={{
+                fontSize: '1.125rem',
+                color: '#dbeafe',
                 marginBottom: '2rem',
                 lineHeight: '1.6',
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)'
@@ -109,11 +123,11 @@ export default function DynamicHeroSection() {
                 </div>
               </div>
             )} */}
-            
+
             {/* Action Buttons */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', maxWidth: '600px' }} className="button-group">
-              <Link 
-                href={heroContent.primaryBtnLink} 
+              <Link
+                href={heroContent.primaryBtnLink}
                 style={{
                   backgroundColor: 'white',
                   color: '#1e40af',
@@ -130,8 +144,8 @@ export default function DynamicHeroSection() {
               >
                 📅 {heroContent.primaryBtnText}
               </Link>
-              <Link 
-                href={heroContent.secondaryBtnLink} 
+              <Link
+                href={heroContent.secondaryBtnLink}
                 style={{
                   backgroundColor: 'transparent',
                   color: 'white',
@@ -157,16 +171,16 @@ export default function DynamicHeroSection() {
         </div>
 
         {/* Trust Indicators */}
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '2rem 0',
           borderTop: '1px solid rgba(255,255,255,0.2)',
           marginTop: '2rem'
         }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             gap: '3rem',
             flexWrap: 'wrap',
             color: '#dbeafe'
@@ -210,25 +224,25 @@ export default function DynamicHeroSection() {
 // Default fallback component
 function DefaultHeroSection() {
   return (
-    <main style={{ 
-      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #1d3557 100%)', 
-      position: 'relative', 
+    <main style={{
+      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #1d3557 100%)',
+      position: 'relative',
       overflow: 'hidden',
       minHeight: '80vh'
     }}>
-      <div style={{ 
-        position: 'absolute', 
-        inset: 0, 
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)', 
-        backgroundSize: '40px 40px' 
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)',
+        backgroundSize: '40px 40px'
       }} />
-      
+
       <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1rem', position: 'relative' }}>
         <div style={{ textAlign: 'center', padding: '6rem 0' }}>
-          <h1 style={{ 
-            fontSize: '2.5rem', 
-            fontWeight: '700', 
-            color: 'white', 
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: '700',
+            color: 'white',
             marginBottom: '1.5rem',
             lineHeight: '1.1',
             textShadow: '0 2px 4px rgba(0,0,0,0.3)'
@@ -236,11 +250,11 @@ function DefaultHeroSection() {
             Premium Dry Cleaning &<br />
             <span style={{ color: '#60a5fa' }}>Laundry Services</span>
           </h1>
-          <p style={{ 
-            fontSize: '1.25rem', 
-            color: '#dbeafe', 
-            marginBottom: '2rem', 
-            maxWidth: '42rem', 
+          <p style={{
+            fontSize: '1.25rem',
+            color: '#dbeafe',
+            marginBottom: '2rem',
+            maxWidth: '42rem',
             margin: '0 auto 2rem',
             textShadow: '0 1px 2px rgba(0,0,0,0.3)'
           }}>

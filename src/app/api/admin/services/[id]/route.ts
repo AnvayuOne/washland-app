@@ -1,167 +1,111 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '../../../../../../src/lib/prisma'
-import requireAdminHybrid from '../../../../../../src/lib/hybrid-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminHybrid } from '@/lib/hybrid-auth'
+import { prisma } from '@/lib/prisma'
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
-    if (auth instanceof NextResponse && auth.status === 401) return auth
+    const authResult = await requireAdminHybrid(request, ['SUPER_ADMIN', 'STORE_ADMIN'])
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
 
     const { id } = await params
-    
     const service = await prisma.service.findUnique({
       where: { id },
       include: {
-        storeServices: {
-          include: {
-            store: {
-              include: {
-                franchise: true
-              }
-            }
-          }
-        },
-        _count: {
-          select: {
-            orderItems: true,
-            storeServices: true
-          }
-        }
+        serviceCategory: true
       }
     })
-    
+
     if (!service) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 })
     }
-    
-    return NextResponse.json(service)
-  } catch (err) {
-    console.error('service GET error', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'failed' }, { status: 500 })
+
+    return NextResponse.json({ success: true, service })
+  } catch (error) {
+    console.error('Error fetching service:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
-    if (auth instanceof NextResponse && auth.status === 401) return auth
+    const authResult = await requireAdminHybrid(request, 'SUPER_ADMIN')
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
 
     const { id } = await params
-    const body = await req.json()
-    const { 
-      name, 
-      description, 
-      basePrice, 
+    const body = await request.json()
+    const {
+      name,
+      description,
+      basePrice,
+      categoryId,
       category,
       isActive
     } = body
 
-    // Check if service exists
-    const existingService = await prisma.service.findUnique({
-      where: { id }
-    })
-    
-    if (!existingService) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 })
-    }
-
-    const updateData: {
-      name?: string;
-      description?: string;
-      basePrice?: number;
-      category?: string;
-      isActive?: boolean;
-    } = {}
-    
-    // Update service info
+    // Optional updates
+    const updateData: any = {}
     if (name !== undefined) updateData.name = name
     if (description !== undefined) updateData.description = description
-    if (category !== undefined) updateData.category = category
+    if (basePrice !== undefined) updateData.basePrice = parseFloat(basePrice)
     if (isActive !== undefined) updateData.isActive = isActive
-    
-    // Validate and update base price
-    if (basePrice !== undefined) {
-      const price = parseFloat(basePrice)
-      if (isNaN(price) || price < 0) {
-        return NextResponse.json({ error: 'Base price must be a valid positive number' }, { status: 400 })
-      }
-      updateData.basePrice = price
+
+    // Handle Category update
+    if (categoryId) {
+      updateData.categoryId = categoryId
+      const cat = await prisma.serviceCategory.findUnique({ where: { id: categoryId } });
+      if (cat) updateData.category = cat.name; // Keep legacy sync
+    } else if (category) {
+      updateData.category = category
+      // Try to sync ID if possible
+      const cat = await prisma.serviceCategory.findUnique({ where: { name: category } });
+      if (cat) updateData.categoryId = cat.id;
     }
 
-    const updatedService = await prisma.service.update({
+    const service = await prisma.service.update({
       where: { id },
       data: updateData,
-      include: {
-        storeServices: {
-          include: {
-            store: {
-              include: {
-                franchise: true
-              }
-            }
-          }
-        },
-        _count: {
-          select: {
-            orderItems: true,
-            storeServices: true
-          }
-        }
-      }
+      include: { serviceCategory: true }
     })
 
-    return NextResponse.json(updatedService)
-  } catch (err) {
-    console.error('service PUT error', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'failed' }, { status: 500 })
+    return NextResponse.json({ success: true, service })
+  } catch (error) {
+    console.error('Error updating service:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
-    if (auth instanceof NextResponse && auth.status === 401) return auth
+    const authResult = await requireAdminHybrid(request, 'SUPER_ADMIN')
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
 
     const { id } = await params
 
-    // Check if service exists
-    const existingService = await prisma.service.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            orderItems: true,
-            storeServices: true
-          }
-        }
-      }
+    // Check usage in OrderItems
+    const usage = await prisma.orderItem.count({
+      where: { serviceId: id }
     })
-    
-    if (!existingService) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 })
-    }
 
-    // Check if service has order items
-    if (existingService._count.orderItems > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete service with existing order items. Please disable the service instead.' 
+    if (usage > 0) {
+      // Soft delete instead? Or forbid?
+      // For now, toggle active false is safer, but if they explicitly DELETE, we check.
+      // Let's just return error for now.
+      return NextResponse.json({
+        error: `Cannot delete service used in ${usage} existing orders. Deactivate it instead.`
       }, { status: 400 })
     }
 
-    // Delete related store services first
-    if (existingService._count.storeServices > 0) {
-      await prisma.storeService.deleteMany({
-        where: { serviceId: id }
-      })
-    }
+    await prisma.service.delete({ where: { id } })
 
-    await prisma.service.delete({
-      where: { id }
-    })
-
-    return NextResponse.json({ success: true, message: 'Service deleted successfully' })
-  } catch (err) {
-    console.error('service DELETE error', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'failed' }, { status: 500 })
+    return NextResponse.json({ success: true, message: 'Service deleted' })
+  } catch (error) {
+    console.error('Error deleting service:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

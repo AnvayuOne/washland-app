@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: 'desc' }
     })
-    
+
     return NextResponse.json(services)
   } catch (err) {
     console.error('services GET error', err)
@@ -51,16 +51,21 @@ export async function POST(req: Request) {
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const body = await req.json()
-    const { 
-      name, 
-      description, 
-      basePrice, 
-      category,
+    const {
+      name,
+      description,
+      basePrice,
+      categoryId, // Expect categoryId
+      category,   // Optional fallback/legacy
       isActive = true
     } = body
 
-    if (!name || !basePrice || !category) {
-      return NextResponse.json({ error: 'Name, base price, and category are required' }, { status: 400 })
+    if (!name || !basePrice) {
+      return NextResponse.json({ error: 'Name and base price are required' }, { status: 400 })
+    }
+
+    if (!categoryId && !category) {
+      return NextResponse.json({ error: 'Category is required' }, { status: 400 })
     }
 
     // Validate basePrice is a valid number
@@ -69,15 +74,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Base price must be a valid positive number' }, { status: 400 })
     }
 
+    // Resolve Category Name if only ID is provided (for legacy field) or vice versa
+    let resolvedCategoryName = category;
+    let resolvedCategoryId = categoryId;
+
+    if (categoryId) {
+      const cat = await prisma.serviceCategory.findUnique({ where: { id: categoryId } });
+      if (cat) resolvedCategoryName = cat.name;
+    } else if (category) {
+      // Attempt to find by name or fallback (ideally we push users to use IDs now)
+      const cat = await prisma.serviceCategory.findUnique({ where: { name: category } });
+      if (cat) resolvedCategoryId = cat.id;
+    }
+
     const service = await prisma.service.create({
       data: {
         name,
         description: description || '',
         basePrice: price,
-        category,
+        categoryId: resolvedCategoryId,
+        category: resolvedCategoryName || 'Uncategorized', // Maintain legacy field
         isActive
       },
       include: {
+        serviceCategory: true,
         storeServices: {
           include: {
             store: {

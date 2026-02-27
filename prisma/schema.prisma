@@ -76,6 +76,7 @@ model User {
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  referralCode  String?   @unique // Personal referral code for this user
 
   // Customer specific
   addresses     Address[]
@@ -174,7 +175,9 @@ model Service {
   name        String
   description String?
   basePrice   Decimal  // Changed from Decimal for SQLite compatibility
-  category    String   // e.g., "Dry Cleaning", "Laundry", "Alterations"
+  category    String   // @deprecated - will replace with relation
+  categoryId  String?
+  serviceCategory ServiceCategory? @relation(fields: [categoryId], references: [id])
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -184,6 +187,20 @@ model Service {
   subscriptionItems SubscriptionItem[]
 
   @@map("services")
+}
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  services    Service[]
+
+  @@map("service_categories")
 }
 
 model StoreService {
@@ -354,7 +371,7 @@ enum WalletTxType {
 
 model Referral {
   id          String         @id @default(cuid())
-  code        String         @unique
+  code        String         // Removed @unique to allow multiple uses of same code
   referrerId  String
   referrer    User           @relation("ReferralReferrer", fields: [referrerId], references: [id])
   referredId  String?        @unique
@@ -402,4 +419,16 @@ model WalletTransaction {
   createdAt  DateTime    @default(now())
 
   @@map("wallet_transactions")
+}
+
+model LoyaltyConfiguration {
+  id                    String   @id @default(cuid())
+  pointsPerOrderCurrency Int     @default(1) // Points earned per currency unit spent
+  pointsForSignUp       Int      @default(50)
+  pointsForReferral     Int      @default(100)
+  minOrderForPoints     Int      @default(0)
+  isActive              Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+  
+  @@map("loyalty_configuration")
 }

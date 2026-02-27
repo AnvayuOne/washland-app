@@ -9,7 +9,11 @@ interface Service {
   id: string
   name: string
   description: string
+  // Support both legacy and new structure
   category: string
+  serviceCategory?: {
+    name: string
+  }
   basePrice: number
   isActive: boolean
   createdAt: string
@@ -18,21 +22,27 @@ interface Service {
   }
 }
 
+interface Category {
+  id: string
+  name: string
+}
+
 export default function ServicesPage() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
   const [userRole, setUserRole] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string>('')
   const [services, setServices] = useState<Service[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   useEffect(() => {
     const r = localStorage.getItem('userRole')
     const email = localStorage.getItem('userEmail')
-    
+
     if (r !== 'SUPER_ADMIN' && r !== 'washland') return router.push('/washland/login')
-    
+
     setUserRole(r || '')
     setUserEmail(email || '')
     setReady(true)
@@ -40,7 +50,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     if (ready) {
-      fetchServices()
+      fetchData()
     }
   }, [ready, selectedCategory])
 
@@ -51,8 +61,17 @@ export default function ServicesPage() {
     router.push('/')
   }
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     try {
+      setLoading(true)
+      // Fetch Categories
+      const catRes = await fetch('/api/admin/services/categories')
+      const catData = await catRes.json()
+      if (catData.success) {
+        setCategories(catData.categories)
+      }
+
+      // Fetch Services
       const params = selectedCategory !== 'all' ? `?category=${selectedCategory}` : ''
       const response = await fetch(`/api/admin/services${params}`)
       if (response.ok) {
@@ -60,7 +79,7 @@ export default function ServicesPage() {
         setServices(data)
       }
     } catch (error) {
-      console.error('Failed to fetch services:', error)
+      console.error('Failed to fetch data:', error)
     } finally {
       setLoading(false)
     }
@@ -73,9 +92,9 @@ export default function ServicesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive })
       })
-      
+
       if (response.ok) {
-        fetchServices() // Refresh the list
+        fetchData() // Refresh the list
       } else {
         alert('Failed to update service status')
       }
@@ -89,7 +108,6 @@ export default function ServicesPage() {
   const totalServices = services.length
   const activeServices = services.filter(s => s.isActive).length
   const totalOrders = services.reduce((sum, s) => sum + s._count.orderItems, 0)
-  const categories = Array.from(new Set(services.map(s => s.category)))
 
   return (
     <DashboardLayout
@@ -103,11 +121,11 @@ export default function ServicesPage() {
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
-              <h1 style={{ 
-                fontSize: '2rem', 
-                fontWeight: '700', 
-                color: '#111827', 
-                marginBottom: '0.5rem' 
+              <h1 style={{
+                fontSize: '2rem',
+                fontWeight: '700',
+                color: '#111827',
+                marginBottom: '0.5rem'
               }}>
                 Service Management
               </h1>
@@ -115,24 +133,43 @@ export default function ServicesPage() {
                 Manage laundry services, pricing, and categories
               </p>
             </div>
-            
-            <Link
-              href="/washland/services/new"
-              style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <PlusIcon />
-              Add New Service
-            </Link>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <Link
+                href="/washland/services/categories"
+                style={{
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                Manage Categories
+              </Link>
+              <Link
+                href="/washland/services/new"
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <PlusIcon />
+                Add New Service
+              </Link>
+            </div>
           </div>
 
           {/* Filter */}
@@ -152,9 +189,9 @@ export default function ServicesPage() {
               }}
             >
               <option value="all">All Categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category}
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -202,7 +239,7 @@ export default function ServicesPage() {
             </div>
           ) : services.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-              No services found. 
+              No services found.
               <Link href="/washland/services/new" style={{ color: '#3b82f6', marginLeft: '0.5rem' }}>
                 Add your first service
               </Link>
@@ -242,7 +279,7 @@ export default function ServicesPage() {
                           backgroundColor: '#e0e7ff',
                           color: '#3730a3'
                         }}>
-                          {service.category}
+                          {service.serviceCategory?.name || service.category}
                         </span>
                       </td>
                       <td style={tableCellStyle}>
@@ -331,6 +368,7 @@ function StatsCard({ title, value, icon, color }: StatsCardProps) {
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: '1rem'
     }}>
       <div style={{
@@ -375,30 +413,30 @@ const tableCellStyle = {
 // Icons
 const PlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 5v14"/>
-    <path d="M5 12h14"/>
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
   </svg>
 )
 
 const ServiceIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-    <line x1="8" y1="21" x2="16" y2="21"/>
-    <line x1="12" y1="17" x2="12" y2="21"/>
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
   </svg>
 )
 
 const CheckCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-    <path d="M9 11l3 3L22 4"/>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <path d="M9 11l3 3L22 4" />
   </svg>
 )
 
 const ShoppingBagIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-    <line x1="3" y1="6" x2="21" y2="6"/>
-    <path d="M16 10a4 4 0 0 1-8 0"/>
+    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
   </svg>
 )

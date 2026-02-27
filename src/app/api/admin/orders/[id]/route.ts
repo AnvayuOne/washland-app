@@ -3,6 +3,7 @@ import { requireAdminHybrid } from '@/lib/hybrid-auth'
 import { prisma } from '@/lib/prisma'
 import { OrderStatus, PaymentStatus } from '@prisma/client'
 import { logActivity } from '@/lib/activity-logger'
+import { processOrderCompletionRewards } from '@/lib/loyalty'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { id } = await params
-    
+
     try {
       const order = await prisma.order.findUnique({
         where: { id },
@@ -62,11 +63,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           }
         }
       })
-      
+
       if (!order) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
-      
+
       return NextResponse.json({
         success: true,
         order,
@@ -94,7 +95,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const body = await request.json()
-    const { 
+    const {
       status,
       paymentStatus,
       pickupDate,
@@ -110,7 +111,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       const existingOrder = await prisma.order.findUnique({
         where: { id }
       })
-      
+
       if (!existingOrder) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
@@ -125,7 +126,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         pickupRiderId?: string | null;
         deliveryRiderId?: string | null;
       } = {}
-      
+
       // Update order info
       if (status !== undefined) updateData.status = status
       if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
@@ -137,7 +138,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       if (specialInstructions !== undefined) updateData.specialInstructions = specialInstructions
       if (stripePaymentIntentId !== undefined) updateData.stripePaymentIntentId = stripePaymentIntentId
-      
+
       // Update rider assignments
       if (pickupRiderId !== undefined) {
         updateData.pickupRiderId = pickupRiderId || null
@@ -198,6 +199,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
       // Log activity if order status changed to COMPLETED
       if (status === 'COMPLETED' && existingOrder.status !== 'COMPLETED') {
+
+        // Process Loyalty & Referral Rewards
+        await processOrderCompletionRewards(updatedOrder.id)
+
         await logActivity({
           type: 'ORDER_COMPLETED',
           description: `Order ${updatedOrder.orderNumber} completed and delivered`,
@@ -253,15 +258,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
           items: true
         }
       })
-      
+
       if (!existingOrder) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
       // Check if order can be deleted (only allow deletion of PENDING or CANCELLED orders)
       if (!['PENDING', 'CANCELLED'].includes(existingOrder.status)) {
-        return NextResponse.json({ 
-          error: 'Can only delete pending or cancelled orders. Update status to CANCELLED first if needed.' 
+        return NextResponse.json({
+          error: 'Can only delete pending or cancelled orders. Update status to CANCELLED first if needed.'
         }, { status: 400 })
       }
 
@@ -275,9 +280,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         where: { id }
       })
 
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Order deleted successfully' 
+      return NextResponse.json({
+        success: true,
+        message: 'Order deleted successfully'
       })
     } catch (dbError) {
       console.error('Database error deleting order:', dbError)
