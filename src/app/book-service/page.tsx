@@ -9,6 +9,8 @@ import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
 export default function BookServicePage() {
   const router = useRouter()
   const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [addingItemByService, setAddingItemByService] = useState<Record<string, boolean>>({})
+  const [cartNotice, setCartNotice] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userInfo, setUserInfo] = useState<{name?: string, email?: string}>({})
   const [services, setServices] = useState<any[]>([])
@@ -83,6 +85,42 @@ export default function BookServicePage() {
     }))
   }
 
+  const handleAddToCart = async (serviceId: string) => {
+    setCartNotice(null)
+    setAddingItemByService(prev => ({ ...prev, [serviceId]: true }))
+
+    try {
+      const response = await fetch('/api/customer/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          serviceId,
+          quantity: 1
+        })
+      })
+
+      if (response.status === 401) {
+        router.push('/auth/signin')
+        return
+      }
+
+      const data = await response.json()
+      if (!response.ok) {
+        setCartNotice(data.error || 'Failed to add item to cart')
+        return
+      }
+
+      setCartNotice('Added to cart')
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      setCartNotice('Failed to add item to cart')
+    } finally {
+      setAddingItemByService(prev => ({ ...prev, [serviceId]: false }))
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -117,6 +155,16 @@ export default function BookServicePage() {
                 : "Select your services and schedule a convenient pickup time"
               }
             </p>
+            <div style={{ marginTop: "0.75rem" }}>
+              <Link href="/customer/cart" style={{ color: "#1e40af", textDecoration: "none", fontWeight: 600 }}>
+                View Cart
+              </Link>
+            </div>
+            {cartNotice && (
+              <p style={{ marginTop: "0.5rem", color: cartNotice === 'Added to cart' ? "#059669" : "#dc2626", fontSize: "0.9rem" }}>
+                {cartNotice}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -214,6 +262,27 @@ export default function BookServicePage() {
                       <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
                         {service.description}
                       </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAddToCart(service.id)
+                        }}
+                        disabled={addingItemByService[service.id]}
+                        style={{
+                          marginTop: "0.6rem",
+                          backgroundColor: addingItemByService[service.id] ? "#93c5fd" : "#2563eb",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "0.5rem",
+                          padding: "0.45rem 0.75rem",
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          cursor: addingItemByService[service.id] ? "not-allowed" : "pointer"
+                        }}
+                      >
+                        {addingItemByService[service.id] ? "Adding..." : "Add to cart"}
+                      </button>
                       {selectedServices.includes(service.id) && (
                         <div style={{ marginTop: "0.5rem", color: "#1e40af", fontSize: "0.875rem", fontWeight: "500" }}>
                           ✓ Selected

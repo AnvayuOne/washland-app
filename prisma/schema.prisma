@@ -19,6 +19,7 @@ enum UserRole {
 }
 
 enum OrderStatus {
+  PAYMENT_PENDING
   PENDING
   CONFIRMED
   IN_PROGRESS
@@ -37,9 +38,29 @@ enum PaymentStatus {
 
 enum SubscriptionStatus {
   ACTIVE
+  PAYMENT_PENDING
   PAUSED
   CANCELLED
   EXPIRED
+}
+
+enum SubscriptionPlanType {
+  PREMIUM_CARE
+  RECURRING_LINENS
+  CUSTOM
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
 }
 
 enum ActivityType {
@@ -81,6 +102,7 @@ model User {
   // Customer specific
   addresses     Address[]
   orders        Order[]
+  carts         Cart[]
   subscriptions Subscription[]
 
   // Admin associations
@@ -147,7 +169,10 @@ model Store {
   updatedAt    DateTime  @updatedAt
 
   orders       Order[]
+  carts        Cart[]
   storeServices StoreService[]
+  subscriptionPlans SubscriptionPlan[]
+  subscriptions Subscription[]
 
   @@map("stores")
 }
@@ -184,6 +209,7 @@ model Service {
 
   storeServices StoreService[]
   orderItems    OrderItem[]
+  cartItems     CartItem[]
   subscriptionItems SubscriptionItem[]
 
   @@map("services")
@@ -217,18 +243,25 @@ model StoreService {
 }
 
 model SubscriptionPlan {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  monthlyPrice  Decimal    // Changed from Decimal for SQLite compatibility
-  discountRate  Decimal    // Changed from Decimal for SQLite compatibility
-  maxOrders     Int      // max orders per month
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String               @id @default(cuid())
+  name             String
+  description      String?
+  planType         SubscriptionPlanType
+  billingCycle     BillingCycle
+  price            Decimal
+  currency         String               @default("INR")
+  benefitsJson     Json?
+  isActive         Boolean              @default(true)
+  storeId          String?
+  store            Store?               @relation(fields: [storeId], references: [id])
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-  subscriptions Subscription[]
+  subscriptions    Subscription[]
   subscriptionItems SubscriptionItem[]
+
+  @@index([isActive])
+  @@index([storeId, isActive])
 
   @@map("subscription_plans")
 }
@@ -251,19 +284,61 @@ model Subscription {
   user        User               @relation(fields: [userId], references: [id])
   planId      String
   plan        SubscriptionPlan   @relation(fields: [planId], references: [id])
-  status      SubscriptionStatus @default(ACTIVE)
-  startDate   DateTime
-  endDate     DateTime?
-  stripeSubscriptionId String? @unique
+  storeId     String
+  store       Store              @relation(fields: [storeId], references: [id])
+  status      SubscriptionStatus @default(PAYMENT_PENDING)
+  startAt     DateTime
+  endAt       DateTime?
+  renewAt     DateTime?
+  autoRenew   Boolean            @default(true)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
+  @@index([userId, status])
+  @@index([storeId, status])
+
   @@map("subscriptions")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  storeId   String?
+  store     Store?     @relation(fields: [storeId], references: [id])
+  status    CartStatus @default(ACTIVE)
+  currency  String     @default("INR")
+  subtotal  Decimal    @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  items     CartItem[]
+
+  @@index([userId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  quantity  Int
+  unitPrice Decimal
+  lineTotal Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, serviceId])
+  @@index([cartId])
+  @@map("cart_items")
 }
 
 model Order {
   id              String        @id @default(cuid())
   orderNumber     String        @unique
+  idempotencyKey  String?
   userId          String
   user            User          @relation(fields: [userId], references: [id])
   storeId         String
@@ -272,6 +347,11 @@ model Order {
   address         Address       @relation(fields: [addressId], references: [id])
   status          OrderStatus   @default(PENDING)
   paymentStatus   PaymentStatus @default(PENDING)
+  currency        String        @default("INR")
+  subtotal        Decimal       @default(0)
+  discount        Decimal       @default(0)
+  tax             Decimal       @default(0)
+  total           Decimal       @default(0)
   totalAmount     Decimal         // Changed from Decimal for SQLite compatibility
   pickupDate      DateTime?
   deliveryDate    DateTime?
@@ -289,6 +369,7 @@ model Order {
 
   items           OrderItem[]
 
+  @@unique([userId, idempotencyKey])
   @@map("orders")
 }
 
@@ -299,6 +380,8 @@ model OrderItem {
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
   quantity  Int
+  unitPrice Decimal   @default(0)
+  lineTotal Decimal   @default(0)
   price     Decimal   // Changed from Decimal for SQLite compatibility
   notes     String?
 

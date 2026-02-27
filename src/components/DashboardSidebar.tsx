@@ -81,7 +81,8 @@ export default function DashboardSidebar({
           children: [
             { label: 'All Services', href: '/washland/services', icon: <ListIcon /> },
             { label: 'Add Service', href: '/washland/services/new', icon: <PlusIcon /> },
-            { label: 'Categories', href: '/washland/services/categories', icon: <CategoryIcon /> }
+            { label: 'Categories', href: '/washland/services/categories', icon: <CategoryIcon /> },
+            { label: 'Subscription Plans', href: '/washland/plans', icon: <PaymentIcon /> }
           ]
         },
         {

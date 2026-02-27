@@ -1,8 +1,10 @@
 import { NextAuthOptions } from "next-auth"
+import { getServerSession } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { UserRole } from "@prisma/client"
+import { NextResponse } from "next/server"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -82,4 +84,19 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
     error: "/auth/error"
   }
+}
+
+export async function requireRole(allowedRoles: UserRole[]) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+  }
+
+  const role = session.user.role as UserRole | undefined
+  if (!role || !allowedRoles.includes(role)) {
+    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+  }
+
+  return session.user
 }

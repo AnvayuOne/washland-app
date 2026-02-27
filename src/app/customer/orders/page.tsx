@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
 import Link from 'next/link'
+import { ORDER_STATUS_SEQUENCE, statusLabel, type OrderStatusValue } from '@/lib/orderStatus'
 
 interface Order {
   id: string
   orderNumber: string
-  status: string
+  status: OrderStatusValue
   totalAmount: number
   createdAt: string
   itemsCount: number
@@ -47,13 +48,7 @@ export default function CustomerOrdersPage() {
 
   const orderStatuses = [
     { value: 'all', label: 'All Orders' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'CONFIRMED', label: 'Confirmed' },
-    { value: 'IN_PROGRESS', label: 'In Progress' },
-    { value: 'READY_FOR_PICKUP', label: 'Ready for Pickup' },
-    { value: 'DELIVERED', label: 'Delivered' },
-    { value: 'COMPLETED', label: 'Completed' },
-    { value: 'CANCELLED', label: 'Cancelled' }
+    ...ORDER_STATUS_SEQUENCE.map((status) => ({ value: status, label: statusLabel(status) }))
   ]
 
   useEffect(() => {
@@ -107,8 +102,9 @@ export default function CustomerOrdersPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: OrderStatusValue) => {
     switch (status) {
+      case 'PAYMENT_PENDING': return '#ea580c'
       case 'PENDING': return '#f59e0b'
       case 'CONFIRMED': return '#3b82f6'
       case 'IN_PROGRESS': return '#8b5cf6'
@@ -120,10 +116,8 @@ export default function CustomerOrdersPage() {
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    return status.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ')
+  const getStatusLabel = (status: OrderStatusValue) => {
+    return statusLabel(status)
   }
 
   const reorderItems = async (orderId: string) => {
@@ -276,7 +270,7 @@ export default function CustomerOrdersPage() {
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
             <p style={{ color: '#6b7280', fontSize: '1.125rem', marginBottom: '1rem' }}>
-              {selectedStatus === 'all' ? 'No orders found' : `No ${getStatusLabel(selectedStatus).toLowerCase()} orders`}
+              {selectedStatus === 'all' ? 'No orders found' : `No ${getStatusLabel(selectedStatus as OrderStatusValue).toLowerCase()} orders`}
             </p>
             <p style={{ color: '#9ca3af', marginBottom: '2rem' }}>
               {selectedStatus === 'all' 
@@ -329,8 +323,8 @@ export default function CustomerOrdersPage() {
 interface OrderCardProps {
   order: Order
   onReorder: (orderId: string) => void
-  getStatusColor: (status: string) => string
-  getStatusLabel: (status: string) => string
+  getStatusColor: (status: OrderStatusValue) => string
+  getStatusLabel: (status: OrderStatusValue) => string
 }
 
 function OrderCard({ order, onReorder, getStatusColor, getStatusLabel }: OrderCardProps) {
@@ -385,6 +379,21 @@ function OrderCard({ order, onReorder, getStatusColor, getStatusLabel }: OrderCa
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <Link
+            href={`/customer/orders/${order.id}`}
+            style={{
+              padding: '0.5rem 0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              color: '#2563eb',
+              fontSize: '0.75rem',
+              fontWeight: '500'
+            }}
+          >
+            View Details
+          </Link>
+
           {order.status === 'COMPLETED' && (
             <button
               onClick={() => onReorder(order.id)}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity-logger'
+import { computeOrderItems, computeOrderTotals, normalizeCurrencyCode } from '@/lib/order-totals'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,11 +41,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
-      // Calculate total amount
-      let totalAmount = 0
-      for (const item of originalOrder.items) {
-        totalAmount += Number(item.price) * item.quantity
-      }
+      const computedItems = computeOrderItems(
+        originalOrder.items.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: item.unitPrice && !item.unitPrice.eq(0) ? item.unitPrice : item.price
+        }))
+      )
+      const totals = computeOrderTotals(computedItems, {
+        currency: normalizeCurrencyCode(originalOrder.currency)
+      })
 
       // Generate unique order number
       const orderNumber = `WL-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
@@ -56,15 +61,22 @@ export async function POST(request: NextRequest) {
           userId,
           storeId: originalOrder.storeId,
           addressId: originalOrder.addressId,
-          totalAmount,
+          currency: totals.currency,
+          subtotal: totals.subtotal,
+          discount: totals.discount,
+          tax: totals.tax,
+          total: totals.total,
+          totalAmount: totals.totalAmount,
           status: 'PENDING',
           paymentStatus: 'PENDING',
           specialInstructions: `Reorder of ${originalOrder.orderNumber}`,
           items: {
-            create: originalOrder.items.map(item => ({
+            create: originalOrder.items.map((item, index) => ({
               serviceId: item.serviceId,
-              quantity: item.quantity,
-              price: item.price,
+              quantity: computedItems[index].quantity,
+              unitPrice: computedItems[index].unitPrice,
+              lineTotal: computedItems[index].lineTotal,
+              price: computedItems[index].unitPrice,
               notes: item.notes || ''
             }))
           }

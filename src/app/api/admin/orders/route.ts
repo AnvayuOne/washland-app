@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminHybrid } from '@/lib/hybrid-auth'
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, PaymentStatus } from '@prisma/client'
+import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
 import { logActivity } from '@/lib/activity-logger'
+import { isOrderStatus } from '@/lib/orderStatus'
+import { computeOrderItems, computeOrderTotals, normalizeCurrencyCode } from '@/lib/order-totals'
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,16 +62,19 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const whereClause: {
-      status?: OrderStatus;
-      paymentStatus?: PaymentStatus;
-      storeId?: string;
-      store?: { franchiseId: string };
-      userId?: string;
-    } = {}
+    const whereClause: Prisma.OrderWhereInput = {}
 
     if (status && status !== 'all') {
-      whereClause.status = status as OrderStatus
+      const statuses = status
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => isOrderStatus(value))
+
+      if (statuses.length === 1) {
+        whereClause.status = statuses[0] as OrderStatus
+      } else if (statuses.length > 1) {
+        whereClause.status = { in: statuses as OrderStatus[] }
+      }
     }
     
     if (paymentStatus && paymentStatus !== 'all') {
@@ -186,7 +191,8 @@ export async function POST(request: NextRequest) {
       items, // Array of {serviceId, quantity, price, notes?}
       pickupDate,
       deliveryDate,
-      specialInstructions
+      specialInstructions,
+      currency
     } = body
 
     if (!storeId || !userId || !addressId || !Array.isArray(items) || items.length === 0) {
@@ -229,8 +235,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Address not found for selected customer' }, { status: 404 })
       }
 
-      // Calculate total amount
-      let totalAmount = 0
+      const preparedItems: Array<{
+        serviceId: string
+        quantity: number
+        unitPrice: number
+        notes: string
+      }> = []
+
       for (const item of items) {
         if (!item.serviceId || typeof item.serviceId !== 'string') {
           return NextResponse.json({
@@ -245,14 +256,29 @@ export async function POST(request: NextRequest) {
           }, { status: 400 })
         }
 
-        const price = parseFloat(item.price)
-        if (isNaN(price) || price < 0) {
+        const unitPrice = Number(item.unitPrice ?? item.price)
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
           return NextResponse.json({ 
             error: `Invalid price for item: ${item.serviceId || item.itemType}` 
           }, { status: 400 })
         }
-        totalAmount += price * quantity
+
+        preparedItems.push({
+          serviceId: item.serviceId,
+          quantity,
+          unitPrice,
+          notes: item.notes || item.instructions || ''
+        })
       }
+
+      const currencyCode = normalizeCurrencyCode(currency)
+      const computedItems = computeOrderItems(
+        preparedItems.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: item.unitPrice
+        }))
+      )
+      const totals = computeOrderTotals(computedItems, { currency: currencyCode })
 
       // Generate unique order number
       const orderNumber = `WL-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
@@ -263,16 +289,23 @@ export async function POST(request: NextRequest) {
           userId,
           storeId,
           addressId,
-          totalAmount,
+          currency: totals.currency,
+          subtotal: totals.subtotal,
+          discount: totals.discount,
+          tax: totals.tax,
+          total: totals.total,
+          totalAmount: totals.totalAmount,
           pickupDate: pickupDate ? new Date(pickupDate) : null,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           specialInstructions: specialInstructions || '',
           items: {
-            create: items.map((item: any) => ({
+            create: preparedItems.map((item, index) => ({
               serviceId: item.serviceId,
-              quantity: Number(item.quantity),
-              price: parseFloat(item.price),
-              notes: item.notes || item.instructions || ''
+              quantity: computedItems[index].quantity,
+              unitPrice: computedItems[index].unitPrice,
+              lineTotal: computedItems[index].lineTotal,
+              price: computedItems[index].unitPrice,
+              notes: item.notes
             }))
           }
         },

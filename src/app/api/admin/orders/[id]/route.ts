@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { OrderStatus, PaymentStatus } from '@prisma/client'
 import { logActivity } from '@/lib/activity-logger'
 import { processOrderCompletionRewards } from '@/lib/loyalty'
+import { canTransition, isOrderStatus, type OrderStatusValue } from '@/lib/orderStatus'
+import { recomputeOrderTotals } from '@/lib/order-totals'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -103,7 +105,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       specialInstructions,
       stripePaymentIntentId,
       pickupRiderId,
-      deliveryRiderId
+      deliveryRiderId,
+      force
     } = body
 
     try {
@@ -114,6 +117,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
       if (!existingOrder) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      }
+
+      if (status !== undefined) {
+        if (typeof status !== 'string' || !isOrderStatus(status)) {
+          return NextResponse.json({ error: 'Invalid order status' }, { status: 400 })
+        }
+
+        const fromStatus = existingOrder.status as OrderStatusValue
+        const toStatus = status as OrderStatusValue
+        const canForceOverride = authResult.role === 'SUPER_ADMIN' && force === true
+
+        if (!canTransition(fromStatus, toStatus) && !canForceOverride) {
+          return NextResponse.json(
+            { error: `Invalid status transition from ${fromStatus} to ${toStatus}` },
+            { status: 400 }
+          )
+        }
       }
 
       const updateData: {
@@ -128,7 +148,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       } = {}
 
       // Update order info
-      if (status !== undefined) updateData.status = status
+      if (status !== undefined) updateData.status = status as OrderStatus
       if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
       if (pickupDate !== undefined) {
         updateData.pickupDate = pickupDate ? new Date(pickupDate) : null
@@ -178,6 +198,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           }
         }
       })
+
+      // Keep normalized monetary fields synced on every update path.
+      await recomputeOrderTotals(updatedOrder.id)
 
       // Log activity if payment status changed to PAID
       if (paymentStatus === 'PAID' && existingOrder.paymentStatus !== 'PAID') {

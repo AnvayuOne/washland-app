@@ -2,20 +2,27 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useToast } from '@/components/ToastProvider'
 import StoreAdminLayout from '@/components/StoreAdminLayout'
+import {
+  ORDER_STATUS_SEQUENCE,
+  canTransition,
+  statusLabel,
+  type OrderStatusValue
+} from '@/lib/orderStatus'
 
 interface Order {
   id: string
   orderNumber: string
   customerName: string
   customerPhone: string
-  status: 'pending' | 'confirmed' | 'in-progress' | 'ready-for-pickup' | 'delivered' | 'completed' | 'cancelled'
+  status: OrderStatusValue
   items: OrderItem[]
   total: number
   pickupDate?: string
   deliveryDate?: string
-  paymentStatus: 'pending' | 'paid' | 'failed'
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED'
   createdAt: string
   updatedAt: string
   pickupRider?: {
@@ -50,15 +57,22 @@ interface Rider {
   phone: string
 }
 
-const orderStatuses = [
-  { value: 'pending', label: 'Pending', color: '#6b7280' },
-  { value: 'confirmed', label: 'Confirmed', color: '#3b82f6' },
-  { value: 'in-progress', label: 'In Progress', color: '#8b5cf6' },
-  { value: 'ready-for-pickup', label: 'Ready for Pickup', color: '#10b981' },
-  { value: 'delivered', label: 'Delivered', color: '#10b981' },
-  { value: 'completed', label: 'Completed', color: '#059669' },
-  { value: 'cancelled', label: 'Cancelled', color: '#ef4444' }
-]
+const statusColorMap: Record<OrderStatusValue, string> = {
+  PAYMENT_PENDING: '#ea580c',
+  PENDING: '#f59e0b',
+  CONFIRMED: '#3b82f6',
+  IN_PROGRESS: '#8b5cf6',
+  READY_FOR_PICKUP: '#14b8a6',
+  DELIVERED: '#10b981',
+  COMPLETED: '#059669',
+  CANCELLED: '#ef4444'
+}
+
+const orderStatuses = ORDER_STATUS_SEQUENCE.map((status) => ({
+  value: status,
+  label: statusLabel(status),
+  color: statusColorMap[status]
+}))
 
 export default function OrdersPage() {
   const router = useRouter()
@@ -149,7 +163,7 @@ export default function OrdersPage() {
           orderNumber: dbOrder.orderNumber,
           customerName: dbOrder.user ? `${dbOrder.user.firstName} ${dbOrder.user.lastName}` : 'Guest Customer',
           customerPhone: dbOrder.user?.phone || 'N/A',
-          status: dbOrder.status.toLowerCase().replace(/_/g, '-') as any,
+          status: dbOrder.status as OrderStatusValue,
           items: dbOrder.items.map((item: any) => ({
             id: item.id,
             itemType: item.service?.name || 'Unknown Service',
@@ -160,7 +174,7 @@ export default function OrdersPage() {
           total: Number(dbOrder.totalAmount),
           pickupDate: dbOrder.pickupDate,
           deliveryDate: dbOrder.deliveryDate,
-          paymentStatus: dbOrder.paymentStatus.toLowerCase() as any,
+          paymentStatus: dbOrder.paymentStatus as 'PENDING' | 'PAID' | 'FAILED',
           createdAt: dbOrder.createdAt,
           updatedAt: dbOrder.updatedAt,
           pickupRider: dbOrder.pickupRider,
@@ -210,29 +224,34 @@ export default function OrdersPage() {
     setOrders([])
   }
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatusValue) => {
     try {
-      // Convert frontend status format to database enum format
-      const dbStatus = newStatus.toUpperCase().replace(/-/g, '_')
-      
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: 'PATCH',
+      const currentOrder = orders.find((order) => order.id === orderId)
+      if (!currentOrder) return
+
+      if (!canTransition(currentOrder.status, newStatus)) {
+        toast.error('Invalid Transition', `${statusLabel(currentOrder.status)} cannot move to ${statusLabel(newStatus)}`)
+        return
+      }
+
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-email': userEmail,
           'x-user-role': userRole
         },
-        body: JSON.stringify({ status: dbStatus })
+        body: JSON.stringify({ status: newStatus })
       })
 
       if (response.ok) {
         // Update local state
         setOrders(prev => prev.map(order => 
           order.id === orderId 
-            ? { ...order, status: newStatus as any, updatedAt: new Date().toISOString() }
+            ? { ...order, status: newStatus, updatedAt: new Date().toISOString() }
             : order
         ))
-        toast.success('Status Updated', `Order status updated to ${getStatusLabel(newStatus)}`)
+        toast.success('Status Updated', `Order status updated to ${statusLabel(newStatus)}`)
       } else {
         const errorData = await response.json()
         toast.error('Error', errorData.error || 'Failed to update order status')
@@ -290,12 +309,12 @@ export default function OrdersPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    return orderStatuses.find(s => s.value === status)?.color || '#6b7280'
+  const getStatusColor = (status: OrderStatusValue) => {
+    return statusColorMap[status] || '#6b7280'
   }
 
-  const getStatusLabel = (status: string) => {
-    return orderStatuses.find(s => s.value === status)?.label || status
+  const getStatusLabel = (status: OrderStatusValue) => {
+    return statusLabel(status)
   }
 
   function handleSignOut() {
@@ -486,14 +505,17 @@ export default function OrdersPage() {
 interface OrderCardProps {
   order: Order
   riders: Rider[]
-  onStatusUpdate: (orderId: string, newStatus: string) => void
+  onStatusUpdate: (orderId: string, newStatus: OrderStatusValue) => void
   onRiderUpdate: (orderId: string, riderType: 'pickup' | 'delivery', riderId: string | null) => void
-  getStatusColor: (status: string) => string
-  getStatusLabel: (status: string) => string
+  getStatusColor: (status: OrderStatusValue) => string
+  getStatusLabel: (status: OrderStatusValue) => string
 }
 
 function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColor, getStatusLabel }: OrderCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const statusOptions = [order.status, ...orderStatuses
+    .filter((status) => status.value !== order.status && canTransition(order.status, status.value))
+    .map((status) => status.value)]
 
   return (
     <div style={{
@@ -538,15 +560,27 @@ function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColo
               <strong>Total:</strong> ₹{order.total}
             </p>
             <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-              <strong>Payment:</strong> {order.paymentStatus === 'paid' ? '✅ Paid' : '⏳ Pending'}
+              <strong>Payment:</strong> {order.paymentStatus === 'PAID' ? 'Paid' : 'Pending'}
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <Link
+            href={`/admin/orders/${order.id}`}
+            style={{
+              fontSize: '0.75rem',
+              color: '#2563eb',
+              textDecoration: 'none',
+              fontWeight: 500
+            }}
+          >
+            View Details
+          </Link>
+
           <select
             value={order.status}
-            onChange={(e) => onStatusUpdate(order.id, e.target.value)}
+            onChange={(e) => onStatusUpdate(order.id, e.target.value as OrderStatusValue)}
             style={{
               padding: '0.5rem',
               border: '1px solid #d1d5db',
@@ -556,9 +590,9 @@ function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColo
               minWidth: '140px'
             }}
           >
-            {orderStatuses.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
+            {statusOptions.map(status => (
+              <option key={status} value={status}>
+                {statusLabel(status)}
               </option>
             ))}
           </select>

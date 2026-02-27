@@ -44,15 +44,13 @@ export default function OrderAnalyticsPage() {
 
     // Status colors
     const statusColors: Record<string, string> = {
+        'PAYMENT_PENDING': 'bg-orange-500',
         'PENDING': 'bg-yellow-500',
         'CONFIRMED': 'bg-blue-500',
-        'PICKED_UP': 'bg-purple-500',
-        'IN_PROCESS_WASHING': 'bg-indigo-500',
-        'IN_PROCESS_IRONING': 'bg-pink-500',
-        'IN_PROCESS_DRY_CLEANING': 'bg-cyan-500',
-        'READY_FOR_DELIVERY': 'bg-teal-500',
-        'OUT_FOR_DELIVERY': 'bg-orange-500',
+        'IN_PROGRESS': 'bg-purple-500',
+        'READY_FOR_PICKUP': 'bg-teal-500',
         'DELIVERED': 'bg-green-600',
+        'COMPLETED': 'bg-slate-500',
         'CANCELLED': 'bg-red-500'
     };
 
@@ -93,7 +91,7 @@ export default function OrderAnalyticsPage() {
                             />
                             <StatsCard
                                 title="Active Orders"
-                                value={stats.ordersByStatus.reduce((sum, s) => ['DELIVERED', 'CANCELLED'].includes(s.status) ? sum : sum + s.count, 0).toString()}
+                                value={stats.ordersByStatus.reduce((sum, s) => ['COMPLETED', 'CANCELLED'].includes(s.status) ? sum : sum + s.count, 0).toString()}
                                 icon={<ShoppingBagIcon />}
                                 color="#3b82f6"
                             />

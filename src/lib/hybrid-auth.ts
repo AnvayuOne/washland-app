@@ -50,7 +50,7 @@ export async function requireHybridAdmin(
   }
 
   // No valid authentication found
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
 }
 
 /**
@@ -66,12 +66,12 @@ export async function requireAdminHybrid(
   if (!request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
     const role = session.user.role as UserRole | undefined
     if (!role || !allowedRolesArray.includes(role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
 
     return session.user

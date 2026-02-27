@@ -55,6 +55,13 @@ export const api = {
       method: 'PUT', 
       body: data ? JSON.stringify(data) : undefined 
     }),
+
+  patch: (url: string, data?: any, options?: RequestInit) =>
+    authenticatedFetch(url, {
+      ...options,
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined
+    }),
     
   delete: (url: string, options?: RequestInit) => 
     authenticatedFetch(url, { ...options, method: 'DELETE' })

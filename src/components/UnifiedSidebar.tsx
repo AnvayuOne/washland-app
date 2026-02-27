@@ -233,6 +233,16 @@ export default React.memo(function UnifiedSidebar({
           icon: <BookServiceIcon />
         },
         {
+          label: 'My Cart',
+          href: '/customer/cart',
+          icon: <CartIcon />
+        },
+        {
+          label: 'My Subscriptions',
+          href: '/customer/subscriptions',
+          icon: <PaymentIcon />
+        },
+        {
           label: 'My Addresses',
           href: '/customer/addresses',
           icon: <AddressIcon />
@@ -1099,6 +1109,14 @@ const BookServiceIcon = () => (
     <path d="M8 12V21"/>
     <path d="M16 12V21"/>
     <circle cx="12" cy="7" r="2"/>
+  </svg>
+)
+
+const CartIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="9" cy="21" r="1" />
+    <circle cx="20" cy="21" r="1" />
+    <path d="M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h8.72a2 2 0 0 0 2-1.61L23 6H6" />
   </svg>
 )
 

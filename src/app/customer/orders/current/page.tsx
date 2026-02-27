@@ -73,7 +73,7 @@ export default function CurrentOrdersPage() {
       }
 
       // Fetch orders that are not completed or cancelled
-      const statuses = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'DELIVERED']
+      const statuses = ['PAYMENT_PENDING', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'DELIVERED']
       const orderPromises = statuses.map(status =>
         fetch(`/api/customer/orders?status=${status}&limit=50`, {
           headers: {
@@ -105,6 +105,7 @@ export default function CurrentOrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'PAYMENT_PENDING': return '#ea580c'
       case 'PENDING': return '#f59e0b'
       case 'CONFIRMED': return '#3b82f6'
       case 'IN_PROGRESS': return '#8b5cf6'
@@ -124,6 +125,7 @@ export default function CurrentOrdersPage() {
 
   const getStatusDescription = (status: string) => {
     switch (status) {
+      case 'PAYMENT_PENDING': return 'Awaiting payment confirmation'
       case 'PENDING': return 'Your order is being reviewed'
       case 'CONFIRMED': return 'Order confirmed, preparing for pickup'
       case 'IN_PROGRESS': return 'Your clothes are being cleaned'

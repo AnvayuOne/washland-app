@@ -80,9 +80,14 @@ export async function GET(request: NextRequest) {
         prisma.order.count({ where: whereClause })
       ])
 
+      const normalizedOrders = orders.map((order) => ({
+        ...order,
+        itemsCount: order.items.length
+      }))
+
       return NextResponse.json({
         success: true,
-        orders,
+        orders: normalizedOrders,
         pagination: {
           total: totalCount,
           page,

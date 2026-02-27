@@ -1,124 +1,151 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import DashboardLayout from '@/components/DashboardLayout'
-import Link from 'next/link'
+import Link from "next/link"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import DashboardLayout from "@/components/DashboardLayout"
+import {
+  ORDER_STATUS_SEQUENCE,
+  canTransition,
+  statusLabel,
+  type OrderStatusValue,
+} from "@/lib/orderStatus"
 
-interface Order {
+interface OrderRecord {
   id: string
   orderNumber: string
-  status: string
+  status: OrderStatusValue
   totalAmount: number
   createdAt: string
-  customer: {
+  user: {
     firstName: string
     lastName: string
-    email: string
-    phone: string
-  }
+    email?: string
+    phone?: string
+  } | null
   store: {
     name: string
-    franchise: {
+    franchise?: {
       name: string
-    }
+    } | null
   }
-  orderItems: Array<{
+  items: Array<{
+    id: string
     quantity: number
-    price: number
-    service: {
+    service?: {
       name: string
-    }
+    } | null
   }>
 }
 
-export default function OrdersPage() {
+const STATUS_COLORS: Record<OrderStatusValue, string> = {
+  PAYMENT_PENDING: "#ea580c",
+  PENDING: "#f59e0b",
+  CONFIRMED: "#3b82f6",
+  IN_PROGRESS: "#8b5cf6",
+  READY_FOR_PICKUP: "#14b8a6",
+  DELIVERED: "#10b981",
+  COMPLETED: "#64748b",
+  CANCELLED: "#ef4444",
+}
+
+export default function WashlandOrdersPage() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
-  const [userRole, setUserRole] = useState<string>('')
-  const [userEmail, setUserEmail] = useState<string>('')
-  const [orders, setOrders] = useState<Order[]>([])
+  const [userRole, setUserRole] = useState("")
+  const [userEmail, setUserEmail] = useState("")
+  const [orders, setOrders] = useState<OrderRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState("all")
 
   useEffect(() => {
-    const r = localStorage.getItem('userRole')
-    const email = localStorage.getItem('userEmail')
+    const role = localStorage.getItem("userRole")
+    const email = localStorage.getItem("userEmail")
 
-    if (r !== 'SUPER_ADMIN' && r !== 'washland') return router.push('/washland/login')
+    if (role !== "SUPER_ADMIN" && role !== "washland") {
+      router.push("/washland/login")
+      return
+    }
 
-    setUserRole(r || '')
-    setUserEmail(email || '')
+    setUserRole(role || "")
+    setUserEmail(email || "")
     setReady(true)
   }, [router])
 
   useEffect(() => {
-    if (ready) {
-      fetchOrders()
-    }
-  }, [ready, selectedStatus])
+    if (!ready) return
+    void fetchOrders()
+  }, [ready, selectedStatus, userRole, userEmail])
 
-  function handleSignOut() {
-    localStorage.removeItem('userRole')
-    localStorage.removeItem('userEmail')
-    window.dispatchEvent(new CustomEvent('auth:session', { detail: null }))
-    router.push('/')
-  }
-
-  const fetchOrders = async () => {
+  async function fetchOrders() {
     try {
-      const params = selectedStatus !== 'all' ? `?status=${selectedStatus}` : ''
-      const response = await fetch(`/api/admin/orders${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && Array.isArray(data.orders)) {
-          setOrders(data.orders)
-        } else if (Array.isArray(data)) {
-          // Fallback if API changes to return array directly
-          setOrders(data)
-        }
+      setLoading(true)
+      const query = selectedStatus !== "all" ? `?status=${selectedStatus}` : ""
+      const roleHeader = userRole === "washland" ? "SUPER_ADMIN" : userRole
+      const response = await fetch(`/api/admin/orders${query}`, {
+        headers: {
+          "x-user-email": userEmail,
+          "x-user-role": roleHeader,
+        },
+      })
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to load orders")
       }
+      setOrders(Array.isArray(payload?.orders) ? payload.orders : [])
     } catch (error) {
-      console.error('Failed to fetch orders:', error)
+      console.error("Failed to fetch washland orders:", error)
+      setOrders([])
     } finally {
       setLoading(false)
     }
   }
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  async function updateOrderStatus(orderId: string, from: OrderStatusValue, to: OrderStatusValue) {
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+      const roleHeader = userRole === "washland" ? "SUPER_ADMIN" : userRole
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-email": userEmail,
+          "x-user-role": roleHeader,
+        },
+        body: JSON.stringify({ status: to, force: true }),
       })
-
-      if (response.ok) {
-        fetchOrders() // Refresh the list
-      } else {
-        alert('Failed to update order status')
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to update status")
       }
+      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: to } : order)))
     } catch (error) {
-      alert('Error updating order status')
+      console.error("Failed to update status:", error)
+      window.alert(error instanceof Error ? error.message : `Unable to move ${statusLabel(from)} to ${statusLabel(to)}`)
     }
   }
 
-  if (!ready) return null
-
-  const totalOrders = orders.length
-  const activeOrders = orders.filter(o => ['PENDING', 'IN_PROGRESS', 'READY'].includes(o.status)).length
-  const completedOrders = orders.filter(o => o.status === 'COMPLETED').length
-  const totalRevenue = orders.filter(o => o.status === 'COMPLETED').reduce((sum, o) => sum + o.totalAmount, 0)
-
-  const statusColorMap: Record<string, string> = {
-    'PENDING': '#f59e0b',
-    'IN_PROGRESS': '#3b82f6',
-    'READY': '#8b5cf6',
-    'COMPLETED': '#10b981',
-    'CANCELLED': '#ef4444'
+  function handleSignOut() {
+    localStorage.removeItem("userRole")
+    localStorage.removeItem("userEmail")
+    window.dispatchEvent(new CustomEvent("auth:session", { detail: null }))
+    router.push("/")
   }
 
-  const statusOptions = ['PENDING', 'IN_PROGRESS', 'READY', 'COMPLETED', 'CANCELLED']
+  const stats = useMemo(() => {
+    const active = orders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status)).length
+    const completed = orders.filter((order) => order.status === "COMPLETED").length
+    const revenue = orders
+      .filter((order) => order.status === "COMPLETED")
+      .reduce((sum, order) => sum + Number(order.totalAmount), 0)
+    return {
+      total: orders.length,
+      active,
+      completed,
+      revenue,
+    }
+  }, [orders])
+
+  if (!ready) return null
 
   return (
     <DashboardLayout
@@ -127,215 +154,124 @@ export default function OrdersPage() {
       userEmail={userEmail}
       onSignOut={handleSignOut}
     >
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <div>
-              <h1 style={{
-                fontSize: '2rem',
-                fontWeight: '700',
-                color: '#111827',
-                marginBottom: '0.5rem'
-              }}>
-                Order Management
-              </h1>
-              <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-                Monitor and manage orders across all stores
-              </p>
-            </div>
-          </div>
-
-          {/* Filter */}
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>
-              Filter by Status:
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="all">All Statuses</option>
-              {statusOptions.map(status => (
-                <option key={status} value={status}>
-                  {status.replace('_', ' ')}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <StatsCard
-              title="Total Orders"
-              value={totalOrders.toString()}
-              icon={<OrderIcon />}
-              color="#3b82f6"
-            />
-            <StatsCard
-              title="Active Orders"
-              value={activeOrders.toString()}
-              icon={<ClockIcon />}
-              color="#f59e0b"
-            />
-            <StatsCard
-              title="Completed Orders"
-              value={completedOrders.toString()}
-              icon={<CheckCircleIcon />}
-              color="#10b981"
-            />
-            <StatsCard
-              title="Total Revenue"
-              value={`₹${totalRevenue.toLocaleString('en-IN')}`}
-              icon={<CurrencyIcon />}
-              color="#ef4444"
-            />
-          </div>
+      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem", color: "#111827" }}>Order Management</h1>
+          <p style={{ color: "#6b7280" }}>Track and manage network-wide orders</p>
         </div>
 
-        {/* Orders Table */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          overflow: 'hidden'
-        }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827' }}>
-              Orders ({totalOrders})
-            </h3>
-          </div>
+        <div style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <label style={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500 }}>Filter by status</label>
+          <select
+            value={selectedStatus}
+            onChange={(event) => setSelectedStatus(event.target.value)}
+            style={{
+              padding: "0.5rem 0.75rem",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db",
+              background: "white",
+            }}
+          >
+            <option value="all">All</option>
+            {ORDER_STATUS_SEQUENCE.map((status) => (
+              <option key={status} value={status}>
+                {statusLabel(status)}
+              </option>
+            ))}
+          </select>
+        </div>
 
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+          <StatCard title="Total Orders" value={stats.total.toString()} />
+          <StatCard title="Active Orders" value={stats.active.toString()} />
+          <StatCard title="Completed" value={stats.completed.toString()} />
+          <StatCard title="Revenue" value={`INR ${stats.revenue.toLocaleString("en-IN")}`} />
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
           {loading ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-              Loading orders...
-            </div>
+            <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>Loading orders...</div>
           ) : orders.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-              No orders found for the selected criteria.
-            </div>
+            <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>No orders found.</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#f9fafb' }}>
-                  <tr>
-                    <th style={tableHeaderStyle}>Order #</th>
-                    <th style={tableHeaderStyle}>Customer</th>
-                    <th style={tableHeaderStyle}>Store</th>
-                    <th style={tableHeaderStyle}>Items</th>
-                    <th style={tableHeaderStyle}>Amount</th>
-                    <th style={tableHeaderStyle}>Status</th>
-                    <th style={tableHeaderStyle}>Date</th>
-                    <th style={tableHeaderStyle}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={tableCellStyle}>
-                        <div style={{ fontWeight: '500', color: '#111827' }}>
-                          #{order.orderNumber}
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div>
-                          <div style={{ fontWeight: '500', color: '#111827' }}>
-                            {order.customer.firstName} {order.customer.lastName}
-                          </div>
-                          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                            {order.customer.email}
-                          </div>
-                          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                            {order.customer.phone}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div>
-                          <div style={{ color: '#374151' }}>{order.store.name}</div>
-                          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                            {order.store.franchise.name}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div style={{ fontSize: '0.875rem' }}>
-                          {order.orderItems.map((item, index) => (
-                            <div key={index} style={{ color: '#374151' }}>
-                              {item.quantity}x {item.service.name}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <span style={{ fontWeight: '500', color: '#111827' }}>
-                          ₹{order.totalAmount.toLocaleString('en-IN')}
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead style={{ background: "#f8fafc" }}>
+                <tr>
+                  <Th>Order</Th>
+                  <Th>Customer</Th>
+                  <Th>Store</Th>
+                  <Th>Items</Th>
+                  <Th>Amount</Th>
+                  <Th>Status</Th>
+                  <Th>Date</Th>
+                  <Th>Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => {
+                  const nextStatuses = ORDER_STATUS_SEQUENCE.filter(
+                    (candidate) => candidate !== order.status && canTransition(order.status, candidate)
+                  )
+                  return (
+                    <tr key={order.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                      <Td>#{order.orderNumber}</Td>
+                      <Td>
+                        <div>{order.user ? `${order.user.firstName} ${order.user.lastName}` : "Guest"}</div>
+                        <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>{order.user?.email || "No email"}</div>
+                      </Td>
+                      <Td>
+                        <div>{order.store?.name || "-"}</div>
+                        <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>{order.store?.franchise?.name || "-"}</div>
+                      </Td>
+                      <Td>{order.items.reduce((sum, item) => sum + item.quantity, 0)}</Td>
+                      <Td>INR {Number(order.totalAmount).toLocaleString("en-IN")}</Td>
+                      <Td>
+                        <span
+                          style={{
+                            padding: "0.2rem 0.6rem",
+                            borderRadius: "999px",
+                            background: `${STATUS_COLORS[order.status]}1a`,
+                            color: STATUS_COLORS[order.status],
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {statusLabel(order.status)}
                         </span>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: '500',
-                          backgroundColor: `${statusColorMap[order.status]}1a`,
-                          color: statusColorMap[order.status]
-                        }}>
-                          {order.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                          <Link
-                            href={`/washland/orders/${order.id}`}
-                            style={{
-                              color: '#3b82f6',
-                              textDecoration: 'none',
-                              fontSize: '0.875rem',
-                              fontWeight: '500'
-                            }}
-                          >
+                      </Td>
+                      <Td>{new Date(order.createdAt).toLocaleDateString()}</Td>
+                      <Td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                          <Link href={`/washland/orders/${order.id}`} style={{ color: "#2563eb", fontSize: "0.85rem" }}>
                             View Details
                           </Link>
-                          {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                          {nextStatuses.length > 0 && order.status !== "COMPLETED" && order.status !== "CANCELLED" ? (
                             <select
                               value={order.status}
-                              onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                              onChange={(event) => updateOrderStatus(order.id, order.status, event.target.value as OrderStatusValue)}
                               style={{
-                                padding: '0.25rem 0.5rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '4px',
-                                fontSize: '0.75rem',
-                                backgroundColor: 'white'
+                                padding: "0.25rem 0.5rem",
+                                border: "1px solid #d1d5db",
+                                borderRadius: "4px",
+                                fontSize: "0.75rem",
+                                background: "white",
                               }}
                             >
-                              {statusOptions.filter(s => s !== 'CANCELLED').map(status => (
+                              <option value={order.status}>{statusLabel(order.status)}</option>
+                              {nextStatuses.map((status) => (
                                 <option key={status} value={status}>
-                                  {status.replace('_', ' ')}
+                                  {statusLabel(status)}
                                 </option>
                               ))}
                             </select>
-                          )}
+                          ) : null}
                         </div>
-                      </td>
+                      </Td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  )
+                })}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -343,92 +279,23 @@ export default function OrdersPage() {
   )
 }
 
-// Helper Components
-interface StatsCardProps {
-  title: string
-  value: string
-  icon: React.ReactNode
-  color: string
-}
-
-function StatsCard({ title, value, icon, color }: StatsCardProps) {
+function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <div style={{
-      backgroundColor: 'white',
-      padding: '1.5rem',
-      borderRadius: '12px',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem'
-    }}>
-      <div style={{
-        padding: '0.75rem',
-        borderRadius: '8px',
-        backgroundColor: `${color}1a`,
-        color: color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontSize: '2rem', fontWeight: '700', color: '#111827' }}>
-          {value}
-        </div>
-        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-          {title}
-        </div>
-      </div>
+    <div style={{ background: "white", borderRadius: "12px", padding: "1rem", border: "1px solid #e5e7eb" }}>
+      <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>{title}</div>
+      <div style={{ color: "#111827", fontWeight: 700, fontSize: "1.25rem" }}>{value}</div>
     </div>
   )
 }
 
-// Styles
-const tableHeaderStyle = {
-  padding: '0.75rem 1rem',
-  textAlign: 'left' as const,
-  fontSize: '0.75rem',
-  fontWeight: '500',
-  color: '#6b7280',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em'
+function Th({ children }: { children: ReactNode }) {
+  return (
+    <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>
+      {children}
+    </th>
+  )
 }
 
-const tableCellStyle = {
-  padding: '1rem',
-  fontSize: '0.875rem'
+function Td({ children }: { children: ReactNode }) {
+  return <td style={{ padding: "0.75rem", fontSize: "0.875rem", color: "#111827" }}>{children}</td>
 }
-
-// Icons
-const OrderIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" />
-    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-    <path d="M9 14L11 16L15 12" />
-  </svg>
-)
-
-const ClockIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12,6 12,12 16,14" />
-  </svg>
-)
-
-const CheckCircleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-    <path d="M9 11l3 3L22 4" />
-  </svg>
-)
-
-const CurrencyIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="1" x2="12" y2="23" />
-    <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5C17 13.8807 15.8807 15 14.5 15H7" />
-    <line x1="10" y1="1" x2="10" y2="5" />
-    <line x1="14" y1="19" x2="14" y2="23" />
-  </svg>
-)
