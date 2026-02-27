@@ -10,13 +10,15 @@ import { prisma } from "./prisma"
  */
 export async function requireHybridAdmin(
   request: Request,
-  allowedRoles: UserRole[] = ["SUPER_ADMIN"]
+  allowedRoles: UserRole[] | UserRole = ["SUPER_ADMIN"]
 ) {
+  const allowedRolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]
+
   // First, try NextAuth session (preferred method)
   const session = await getServerSession(authOptions)
   if (session?.user?.role) {
     const role = session.user.role as UserRole
-    if (allowedRoles.includes(role)) {
+    if (allowedRolesArray.includes(role)) {
       return { user: session.user, method: 'session' }
     }
   }
@@ -27,7 +29,7 @@ export async function requireHybridAdmin(
   
   if (userEmail && userRole) {
     const role = userRole as UserRole
-    if (allowedRoles.includes(role)) {
+    if (allowedRolesArray.includes(role)) {
       // Verify the user exists in database
       const user = await prisma.user.findUnique({
         where: { email: userEmail },
@@ -56,8 +58,10 @@ export async function requireHybridAdmin(
  */
 export async function requireAdminHybrid(
   request?: Request,
-  allowedRoles: UserRole[] = ["SUPER_ADMIN"]
+  allowedRoles: UserRole[] | UserRole = ["SUPER_ADMIN"]
 ) {
+  const allowedRolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]
+
   // If no request provided, fall back to NextAuth only (for backward compatibility)
   if (!request) {
     const session = await getServerSession(authOptions)
@@ -66,7 +70,7 @@ export async function requireAdminHybrid(
     }
 
     const role = session.user.role as UserRole | undefined
-    if (!role || !allowedRoles.includes(role)) {
+    if (!role || !allowedRolesArray.includes(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -74,7 +78,7 @@ export async function requireAdminHybrid(
   }
 
   // Use hybrid authentication
-  const result = await requireHybridAdmin(request, allowedRoles)
+  const result = await requireHybridAdmin(request, allowedRolesArray)
   if ('user' in result) {
     return result.user
   }

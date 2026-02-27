@@ -24,14 +24,16 @@ export async function GET(request: NextRequest) {
         referrer: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true
           }
         },
         referred: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true
           }
         }
@@ -41,9 +43,23 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const referralsWithFullName = referrals.map((referral) => ({
+      ...referral,
+      referrer: {
+        ...referral.referrer,
+        fullName: `${referral.referrer.firstName ?? ''} ${referral.referrer.lastName ?? ''}`.trim()
+      },
+      referred: referral.referred
+        ? {
+            ...referral.referred,
+            fullName: `${referral.referred.firstName ?? ''} ${referral.referred.lastName ?? ''}`.trim()
+          }
+        : null
+    }))
+
     return NextResponse.json({
       success: true,
-      referrals
+      referrals: referralsWithFullName
     })
 
   } catch (error) {

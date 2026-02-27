@@ -1,42 +1,107 @@
 import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
+
+// Intended protection:
+// - Public: /auth/* and role login pages (/admin/login, /washland/login, /franchise/login, /rider/login)
+// - Protected: all other /admin/*, /washland/*, /franchise/*, /rider/*, /customer/*, and /api/admin/*
+const PUBLIC_ROUTE_PREFIXES = ["/auth/"]
+const PUBLIC_EXACT_ROUTES = [
+  "/admin/login",
+  "/washland/login",
+  "/franchise/login",
+  "/rider/login"
+]
+
+function isPublicRoute(pathname: string) {
+  return (
+    PUBLIC_EXACT_ROUTES.includes(pathname) ||
+    PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  )
+}
+
+function dashboardForRole(role?: string) {
+  switch (role) {
+    case "SUPER_ADMIN":
+      return "/washland/dashboard"
+    case "FRANCHISE_ADMIN":
+      return "/franchise/dashboard"
+    case "STORE_ADMIN":
+      return "/admin/dashboard"
+    case "CUSTOMER":
+      return "/customer/dashboard"
+    case "RIDER":
+      return "/rider/dashboard"
+    default:
+      return "/"
+  }
+}
+
+function redirectToRoleDashboard(req: { url: string }, role?: string) {
+  return NextResponse.redirect(new URL(dashboardForRole(role), req.url))
+}
 
 export default withAuth(
   function middleware(req) {
-    // This function is executed if the user is authenticated
     const token = req.nextauth.token
+    const role = token?.role as string | undefined
     const { pathname } = req.nextUrl
 
-    // Super Admin routes
-    if (pathname.startsWith("/admin/super")) {
-      if (token?.role !== "SUPER_ADMIN") {
-        return new Response("Access Denied", { status: 403 })
+    // Keep login/auth routes public, but send already-authenticated users to their own dashboard.
+    if (isPublicRoute(pathname)) {
+      if (role && PUBLIC_EXACT_ROUTES.includes(pathname)) {
+        const target = dashboardForRole(role)
+        if (target !== pathname) {
+          return NextResponse.redirect(new URL(target, req.url))
+        }
       }
+      return NextResponse.next()
     }
 
-    // Franchise Admin routes
-    if (pathname.startsWith("/admin/franchise")) {
-      if (!["SUPER_ADMIN", "FRANCHISE_ADMIN"].includes(token?.role as string)) {
-        return new Response("Access Denied", { status: 403 })
+    const enforceRole = (allowedRoles: string[]) => {
+      if (!role) {
+        return NextResponse.redirect(new URL("/auth/signin", req.url))
       }
+      if (!allowedRoles.includes(role)) {
+        return redirectToRoleDashboard(req, role)
+      }
+      return NextResponse.next()
     }
 
-    // Store Admin routes
-    if (pathname.startsWith("/admin/store")) {
-      if (!["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"].includes(token?.role as string)) {
-        return new Response("Access Denied", { status: 403 })
-      }
+    if (pathname.startsWith("/washland")) {
+      return enforceRole(["SUPER_ADMIN"])
     }
 
-    // Customer routes
+    if (pathname.startsWith("/franchise")) {
+      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN"])
+    }
+
+    if (pathname.startsWith("/admin")) {
+      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"])
+    }
+
+    if (pathname.startsWith("/rider")) {
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN", "RIDER"])
+    }
+
     if (pathname.startsWith("/customer")) {
-      if (!token?.role) {
-        return new Response("Access Denied", { status: 403 })
-      }
+      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN", "CUSTOMER"])
     }
+
+    if (pathname.startsWith("/api/admin")) {
+      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"])
+    }
+
+    return NextResponse.next()
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ req, token }) => {
+        const pathname = req.nextUrl.pathname
+        if (isPublicRoute(pathname)) {
+          return true
+        }
+        return !!token
+      }
     }
   }
 )
@@ -44,6 +109,9 @@ export default withAuth(
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/washland/:path*",
+    "/franchise/:path*",
+    "/rider/:path*",
     "/customer/:path*",
     "/api/admin/:path*"
   ]

@@ -48,16 +48,19 @@ export default function SignInPage() {
 
           switch (session.user.role) {
             case "SUPER_ADMIN":
-              router.push("/admin/super")
+              router.push("/washland/dashboard")
               break
             case "FRANCHISE_ADMIN":
-              router.push("/admin/franchise")
+              router.push("/franchise/dashboard")
               break
             case "STORE_ADMIN":
-              router.push("/admin/store")
+              router.push("/admin/dashboard")
               break
             case "CUSTOMER":
               router.push("/customer/dashboard")
+              break
+            case "RIDER":
+              router.push("/rider/dashboard")
               break
             default:
               router.push("/")

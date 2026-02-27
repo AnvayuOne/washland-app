@@ -92,7 +92,7 @@ export default function AdminDashboard() {
             name: store.name,
             city: store.city,
             state: store.state,
-            franchiseName: store.franchise.name
+            franchiseName: store.franchise?.name || 'N/A'
           })
         } else {
           toast.error('Error', 'Store information not found.')

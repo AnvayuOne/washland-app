@@ -16,18 +16,19 @@ export async function processOrderCompletionRewards(orderId: string) {
         const config = await prisma.loyaltyConfiguration.findFirst()
         if (!config || !config.isActive) return
 
+        const orderTotalAmount = Number(order.totalAmount)
+
         // 1. Reward User for their own order (Loyalty Points)
-        if (config.minOrderForPoints === 0 || order.totalAmount >= config.minOrderForPoints) {
-            const pointsToEarn = Math.floor(order.totalAmount * config.pointsPerOrderCurrency)
+        if (config.minOrderForPoints === 0 || orderTotalAmount >= config.minOrderForPoints) {
+            const pointsToEarn = Math.floor(orderTotalAmount * config.pointsPerOrderCurrency)
 
             if (pointsToEarn > 0) {
+                // TODO: If human-readable event details are needed, add a schema field (e.g. metadata/description).
                 await prisma.loyaltyPoint.create({
                     data: {
                         userId: order.userId,
                         points: pointsToEarn,
-                        type: 'EARNED',
-                        source: 'ORDER_REWARD',
-                        description: `Points earned from Order #${order.orderNumber}`
+                        source: 'ORDER_REWARD'
                     }
                 })
             }
@@ -58,9 +59,7 @@ export async function processOrderCompletionRewards(orderId: string) {
                     data: {
                         userId: referral.referrerId,
                         points: config.pointsForReferral,
-                        type: 'EARNED',
-                        source: 'REFERRAL_REWARD',
-                        description: `Bonus for referring ${order.user.firstName}`
+                        source: 'REFERRAL_REWARD'
                     }
                 })
 

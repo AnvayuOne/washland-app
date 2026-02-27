@@ -17,8 +17,48 @@ export async function GET(request: NextRequest) {
     const storeId = searchParams.get('storeId')
     const franchiseId = searchParams.get('franchiseId')
     const userId = searchParams.get('userId')
+    const lookup = searchParams.get('lookup')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
+
+    if (lookup === 'customers') {
+      const customers = await prisma.user.findMany({
+        where: {
+          role: 'CUSTOMER',
+          isActive: true
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          addresses: {
+            select: {
+              id: true,
+              title: true,
+              street: true,
+              city: true,
+              state: true,
+              zipCode: true,
+              isDefault: true
+            },
+            orderBy: [
+              { isDefault: 'desc' },
+              { createdAt: 'desc' }
+            ]
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        customers
+      })
+    }
 
     const whereClause: {
       status?: OrderStatus;
@@ -146,20 +186,12 @@ export async function POST(request: NextRequest) {
       items, // Array of {serviceId, quantity, price, notes?}
       pickupDate,
       deliveryDate,
-      specialInstructions,
-      customerName,
-      customerPhone
+      specialInstructions
     } = body
 
-    if (!storeId || !items || items.length === 0) {
+    if (!storeId || !userId || !addressId || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ 
-        error: 'Store ID and at least one item are required' 
-      }, { status: 400 })
-    }
-
-    if (!customerName || !customerPhone) {
-      return NextResponse.json({ 
-        error: 'Customer name and phone are required' 
+        error: 'Store ID, customer, address, and at least one item are required' 
       }, { status: 400 })
     }
 
@@ -170,32 +202,56 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
       }
 
-      // If userId provided, validate user exists
-      if (userId) {
-        const user = await prisma.user.findUnique({ where: { id: userId } })
-        if (!user) {
-          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      // Validate selected customer exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          role: true
         }
+      })
+      if (!user) {
+        return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      }
+      if (user.role !== 'CUSTOMER') {
+        return NextResponse.json({ error: 'Selected user is not a customer' }, { status: 400 })
       }
 
-      // If addressId provided, validate address exists
-      if (addressId) {
-        const address = await prisma.address.findUnique({ where: { id: addressId } })
-        if (!address) {
-          return NextResponse.json({ error: 'Address not found' }, { status: 404 })
-        }
+      // Validate selected address exists and belongs to selected customer
+      const address = await prisma.address.findFirst({
+        where: {
+          id: addressId,
+          userId
+        },
+        select: { id: true }
+      })
+      if (!address) {
+        return NextResponse.json({ error: 'Address not found for selected customer' }, { status: 404 })
       }
 
       // Calculate total amount
       let totalAmount = 0
       for (const item of items) {
+        if (!item.serviceId || typeof item.serviceId !== 'string') {
+          return NextResponse.json({
+            error: 'Each order item must include a valid service'
+          }, { status: 400 })
+        }
+
+        const quantity = Number(item.quantity)
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+          return NextResponse.json({
+            error: `Invalid quantity for service: ${item.serviceId}`
+          }, { status: 400 })
+        }
+
         const price = parseFloat(item.price)
         if (isNaN(price) || price < 0) {
           return NextResponse.json({ 
             error: `Invalid price for item: ${item.serviceId || item.itemType}` 
           }, { status: 400 })
         }
-        totalAmount += price * item.quantity
+        totalAmount += price * quantity
       }
 
       // Generate unique order number
@@ -204,24 +260,24 @@ export async function POST(request: NextRequest) {
       const order = await prisma.order.create({
         data: {
           orderNumber,
-          userId: userId || null,
+          userId,
           storeId,
-          addressId: addressId || null,
+          addressId,
           totalAmount,
           pickupDate: pickupDate ? new Date(pickupDate) : null,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           specialInstructions: specialInstructions || '',
           items: {
             create: items.map((item: any) => ({
-              serviceId: item.serviceId || null,
-              quantity: item.quantity,
+              serviceId: item.serviceId,
+              quantity: Number(item.quantity),
               price: parseFloat(item.price),
               notes: item.notes || item.instructions || ''
             }))
           }
         },
         include: {
-          user: userId ? {
+          user: {
             select: {
               id: true,
               firstName: true,
@@ -229,7 +285,7 @@ export async function POST(request: NextRequest) {
               email: true,
               phone: true
             }
-          } : undefined,
+          },
           store: {
             include: {
               franchise: {
@@ -240,7 +296,7 @@ export async function POST(request: NextRequest) {
               }
             }
           },
-          address: addressId ? true : undefined,
+          address: true,
           items: {
             include: {
               service: true

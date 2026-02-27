@@ -10,7 +10,9 @@ interface LoyaltyPoint {
     source: string;
     user: {
         id: string;
-        name: string;
+        firstName: string;
+        lastName: string;
+        fullName: string;
         email: string;
     };
     expiresAt: string | null;
@@ -119,12 +121,12 @@ export default function LoyaltyPage() {
                                         <th style={tableHeaderStyle}>Date</th>
                                     </tr>
                                 </thead>
-                                <tbody style={{ divideY: '1px solid #f3f4f6' }}>
+                                <tbody>
                                     {transactions.map((t) => (
                                         <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                             <td style={tableCellStyle}>
                                                 <div>
-                                                    <div style={{ fontWeight: '500', color: '#111827' }}>{t.user.name}</div>
+                                                    <div style={{ fontWeight: '500', color: '#111827' }}>{t.user.fullName || 'Unknown User'}</div>
                                                     <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t.user.email}</div>
                                                 </div>
                                             </td>

@@ -9,12 +9,16 @@ interface Referral {
     code: string;
     referrer: {
         id: string;
-        name: string;
+        firstName: string;
+        lastName: string;
+        fullName: string;
         email: string;
     };
     referred: {
         id: string;
-        name: string;
+        firstName: string;
+        lastName: string;
+        fullName: string;
         email: string;
     } | null;
     status: 'PENDING' | 'REWARDED' | 'REVOKED';
@@ -147,7 +151,7 @@ export default function ReferralsPage() {
                                         <th style={tableHeaderStyle}>Date</th>
                                     </tr>
                                 </thead>
-                                <tbody style={{ divideY: '1px solid #f3f4f6' }}>
+                                <tbody>
                                     {referrals.map((referral) => (
                                         <tr key={referral.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                             <td style={tableCellStyle}>
@@ -157,14 +161,14 @@ export default function ReferralsPage() {
                                             </td>
                                             <td style={tableCellStyle}>
                                                 <div>
-                                                    <div style={{ fontWeight: '500', color: '#111827' }}>{referral.referrer.name}</div>
+                                                    <div style={{ fontWeight: '500', color: '#111827' }}>{referral.referrer.fullName || 'Unknown User'}</div>
                                                     <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{referral.referrer.email}</div>
                                                 </div>
                                             </td>
                                             <td style={tableCellStyle}>
                                                 {referral.referred ? (
                                                     <div>
-                                                        <div style={{ fontWeight: '500', color: '#111827' }}>{referral.referred.name}</div>
+                                                        <div style={{ fontWeight: '500', color: '#111827' }}>{referral.referred.fullName || 'Unknown User'}</div>
                                                         <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{referral.referred.email}</div>
                                                     </div>
                                                 ) : (

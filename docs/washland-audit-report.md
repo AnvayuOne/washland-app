@@ -131,7 +131,7 @@ Date: February 27, 2026
 - API role checks are present but inconsistently enforced.
 
 ### Issues
-- Signin redirect targets include non-existent routes (`/admin/super`, `/admin/franchise`, `/admin/store`).
+- Signin redirect targets were updated to existing dashboards by role (`/washland/dashboard`, `/franchise/dashboard`, `/admin/dashboard`, `/customer/dashboard`, `/rider/dashboard`).
 - Many admin API handlers only short-circuit on `401`, not `403`, so forbidden checks can leak into handler logic.
 - Mixed auth paradigms (session + localStorage/header) create maintainability and security risk.
 
@@ -336,4 +336,3 @@ Date: February 27, 2026
 1. Add service worker and offline caching strategy for full PWA behavior.
 2. Clean dead sidebar links and incomplete navigation paths.
 3. Decompose large page components into smaller feature modules with shared logic.
-

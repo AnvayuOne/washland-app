@@ -179,7 +179,7 @@ export default function ServiceCategoriesPage() {
                                         <th style={tableHeaderStyle}>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody style={{ divideY: '1px solid #f3f4f6' }}>
+                                <tbody>
                                     {categories.map((cat) => (
                                         <tr key={cat.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                             <td style={tableCellStyle}>

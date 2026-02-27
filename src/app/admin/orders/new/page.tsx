@@ -22,18 +22,33 @@ interface OrderItem {
   notes?: string
 }
 
-interface Customer {
-  name: string
+interface CustomerAddress {
+  id: string
+  title: string
+  street: string
+  city: string
+  state: string
+  zipCode: string
+  isDefault: boolean
+}
+
+interface CustomerOption {
+  id: string
+  firstName: string
+  lastName: string
   phone: string
-  email?: string
+  email: string
+  addresses: CustomerAddress[]
 }
 
 export default function NewOrderPage() {
   const router = useRouter()
   const toast = useToast()
   const [services, setServices] = useState<Service[]>([])
+  const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([])
-  const [customer, setCustomer] = useState<Customer>({ name: '', phone: '', email: '' })
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [selectedAddressId, setSelectedAddressId] = useState('')
   const [pickupDate, setPickupDate] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [specialInstructions, setSpecialInstructions] = useState('')
@@ -44,6 +59,8 @@ export default function NewOrderPage() {
   const [userName, setUserName] = useState('')
   const [storeId, setStoreId] = useState('')
   const [storeName, setStoreName] = useState('')
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
+  const selectedAddress = selectedCustomer?.addresses.find((a) => a.id === selectedAddressId)
 
   useEffect(() => {
     const role = localStorage.getItem('userRole')
@@ -76,12 +93,18 @@ export default function NewOrderPage() {
     }
   }, [router, toast])
 
-  // Fetch services when auth data is available
+  // Fetch services + customer lookup data when auth data is available
   useEffect(() => {
     if (userEmail && userRole) {
-      fetchServices()
+      fetchInitialData()
     }
   }, [userEmail, userRole])
+
+  const fetchInitialData = async () => {
+    setLoading(true)
+    await Promise.all([fetchServices(), fetchCustomerLookups()])
+    setLoading(false)
+  }
 
   const fetchServices = async () => {
     try {
@@ -102,10 +125,34 @@ export default function NewOrderPage() {
     } catch (error) {
       console.error('Error fetching services:', error)
       toast.error('Error', 'Failed to load services')
-    } finally {
-      setLoading(false)
     }
   }
+
+  const fetchCustomerLookups = async () => {
+    try {
+      const response = await fetch('/api/admin/orders?lookup=customers', {
+        headers: {
+          'x-user-email': userEmail,
+          'x-user-role': userRole
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCustomers(data.customers || [])
+      } else {
+        console.error('Failed to fetch customers')
+        toast.error('Error', 'Failed to load customers')
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+      toast.error('Error', 'Failed to load customers')
+    }
+  }
+
+  useEffect(() => {
+    setSelectedAddressId('')
+  }, [selectedCustomerId])
 
   const addServiceToOrder = (service: Service) => {
     const existingItem = selectedItems.find(item => item.serviceId === service.id)
@@ -170,8 +217,13 @@ export default function NewOrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!customer.name || !customer.phone) {
-      toast.error('Validation Error', 'Customer name and phone are required')
+    if (!selectedCustomerId) {
+      toast.error('Validation Error', 'Please select a customer')
+      return
+    }
+
+    if (!selectedAddressId) {
+      toast.error('Validation Error', 'Please select a customer address')
       return
     }
 
@@ -185,8 +237,8 @@ export default function NewOrderPage() {
     try {
       const orderData = {
         storeId,
-        customerName: customer.name,
-        customerPhone: customer.phone,
+        userId: selectedCustomerId,
+        addressId: selectedAddressId,
         items: selectedItems.map(item => ({
           serviceId: item.serviceId,
           quantity: item.quantity,
@@ -260,7 +312,7 @@ export default function NewOrderPage() {
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem'
             }} />
-            <p style={{ color: '#6b7280' }}>Loading services...</p>
+            <p style={{ color: '#6b7280' }}>Loading services and customers...</p>
           </div>
           <style jsx>{`
             @keyframes spin {
@@ -307,7 +359,7 @@ export default function NewOrderPage() {
             </h1>
           </div>
           <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-            Create a new instore order for walk-in customers
+            Create a new in-store order for an existing customer
           </p>
         </div>
 
@@ -330,7 +382,7 @@ export default function NewOrderPage() {
                 Customer Information
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{
                     display: 'block',
@@ -339,22 +391,28 @@ export default function NewOrderPage() {
                     color: '#374151',
                     marginBottom: '0.25rem'
                   }}>
-                    Customer Name *
+                    Customer *
                   </label>
-                  <input
-                    type="text"
-                    value={customer.name}
-                    onChange={(e) => setCustomer(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter customer name"
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => setSelectedCustomerId(e.target.value)}
                     required
                     style={{
                       width: '100%',
                       padding: '0.5rem',
                       border: '1px solid #d1d5db',
                       borderRadius: '6px',
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      backgroundColor: 'white'
                     }}
-                  />
+                  >
+                    <option value="">Select customer</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {`${customer.firstName} ${customer.lastName} - ${customer.phone}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -365,49 +423,58 @@ export default function NewOrderPage() {
                     color: '#374151',
                     marginBottom: '0.25rem'
                   }}>
-                    Phone Number *
+                    Address *
                   </label>
-                  <input
-                    type="tel"
-                    value={customer.phone}
-                    onChange={(e) => setCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Enter phone number"
+                  <select
+                    value={selectedAddressId}
+                    onChange={(e) => setSelectedAddressId(e.target.value)}
                     required
+                    disabled={!selectedCustomerId}
                     style={{
                       width: '100%',
                       padding: '0.5rem',
                       border: '1px solid #d1d5db',
                       borderRadius: '6px',
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      backgroundColor: selectedCustomerId ? 'white' : '#f9fafb'
                     }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '0.25rem'
-                  }}>
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={customer.email}
-                    onChange={(e) => setCustomer(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="Enter email address"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem'
-                    }}
-                  />
+                  >
+                    <option value="">Select address</option>
+                    {(selectedCustomer?.addresses || []).map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {`${address.title}: ${address.street}, ${address.city}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              {selectedCustomer && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.8rem',
+                  color: '#334155'
+                }}>
+                  <div>{`${selectedCustomer.firstName} ${selectedCustomer.lastName}`}</div>
+                  <div>{selectedCustomer.phone}</div>
+                  {selectedCustomer.email && <div>{selectedCustomer.email}</div>}
+                  {selectedAddress && (
+                    <div style={{ marginTop: '0.35rem', color: '#0f172a' }}>
+                      {`${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.zipCode}`}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {customers.length === 0 && (
+                <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#b45309' }}>
+                  No active customers found. Create a customer account before placing an order.
+                </p>
+              )}
             </div>
 
             {/* Service Selection */}
@@ -819,17 +886,32 @@ export default function NewOrderPage() {
 
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={
+                        submitting ||
+                        !selectedCustomerId ||
+                        !selectedAddressId ||
+                        selectedItems.length === 0
+                      }
                       style={{
                         width: '100%',
                         padding: '0.75rem',
-                        backgroundColor: submitting ? '#9ca3af' : '#059669',
+                        backgroundColor: (
+                          submitting ||
+                          !selectedCustomerId ||
+                          !selectedAddressId ||
+                          selectedItems.length === 0
+                        ) ? '#9ca3af' : '#059669',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
                         fontSize: '0.875rem',
                         fontWeight: '600',
-                        cursor: submitting ? 'not-allowed' : 'pointer'
+                        cursor: (
+                          submitting ||
+                          !selectedCustomerId ||
+                          !selectedAddressId ||
+                          selectedItems.length === 0
+                        ) ? 'not-allowed' : 'pointer'
                       }}
                     >
                       {submitting ? 'Creating Order...' : 'Create Order'}

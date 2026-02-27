@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true
           }
         }
@@ -25,9 +26,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const pointsWithFullName = points.map((point) => ({
+      ...point,
+      user: {
+        ...point.user,
+        fullName: `${point.user.firstName ?? ''} ${point.user.lastName ?? ''}`.trim()
+      }
+    }))
+
     return NextResponse.json({
       success: true,
-      points
+      points: pointsWithFullName
     })
 
   } catch (error) {

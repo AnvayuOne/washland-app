@@ -235,21 +235,21 @@ body {
 
 /* Responsive breakpoints */
 @media (min-width: 768px) {
-  .md\\:flex {
+  .md\:flex {
     display: flex !important;
   }
   
-  .md\\:hidden {
+  .md\:hidden {
     display: none !important;
   }
 }
 
 @media (max-width: 767px) {
-  .md\\:flex {
+  .md\:flex {
     display: none !important;
   }
   
-  .md\\:hidden {
+  .md\:hidden {
     display: block !important;
   }
 }
@@ -323,33 +323,33 @@ body {
 }
 
 @media (min-width: 640px) {
-  .sm\\:px-6 {
+  .sm\:px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
   
-  .sm\\:flex-row {
+  .sm\:flex-row {
     flex-direction: row;
   }
 }
 
 @media (min-width: 768px) {
-  .md\\:flex {
+  .md\:flex {
     display: flex;
   }
   
-  .md\\:text-6xl {
+  .md\:text-6xl {
     font-size: 3.75rem;
     line-height: 1;
   }
   
-  .md\\:grid-cols-3 {
+  .md\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
-  .lg\\:px-8 {
+  .lg\:px-8 {
     padding-left: 2rem;
     padding-right: 2rem;
   }

@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
   userRole: string
   userName?: string
   userEmail?: string
-  onSignOut: () => void
+  onSignOut?: () => void
 }
 
 export default function DashboardLayout({ 
@@ -16,7 +16,7 @@ export default function DashboardLayout({
   userRole, 
   userName, 
   userEmail, 
-  onSignOut 
+  onSignOut = () => {} 
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 

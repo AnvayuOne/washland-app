@@ -19,12 +19,21 @@ export async function createReferralForReferrer(referrerId: string) {
 }
 
 export async function applyReferralCode(code: string, referredUserId: string) {
-  const ref = await prisma.referral.findUnique({ where: { code } })
+  const ref = await prisma.referral.findFirst({
+    where: {
+      code,
+      referredId: null,
+      status: 'PENDING',
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  })
   if (!ref) throw new Error('Referral code not found')
   if (ref.referredId) throw new Error('Referral code already used')
 
   const updated = await prisma.referral.update({
-    where: { code },
+    where: { id: ref.id },
     data: { referredId: referredUserId },
   })
   return updated

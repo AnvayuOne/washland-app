@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const stores = await prisma.store.findMany({
       where: {
-        status: 'ACTIVE'
+        isActive: true
       },
       select: {
         id: true,
@@ -16,25 +16,37 @@ export async function GET() {
         zipCode: true,
         phone: true,
         email: true,
-        // We need to add lat/lon to the store model if it doesn't exist, 
-        // for now we'll mock them or return null if schema doesn't have them yet.
-        // Checking schema, Store model might not have lat/lon. 
-        // Let's check what fields we have in schema.prisma first to be safe.
+        franchise: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
       }
     })
 
-    // Transform for frontend
     const formattedStores = stores.map(store => ({
-      ...store,
+      id: store.id,
+      name: store.name,
+      address: store.address,
+      city: store.city,
+      state: store.state,
+      zipCode: store.zipCode,
+      phone: store.phone,
+      email: store.email || '',
+      franchise: store.franchise,
       pincode: store.zipCode,
-      lat: null, // Placeholder - needed for distance calc
-      lon: null, // Placeholder
-      hours: { // Placeholder default hours
+      lat: null,
+      lon: null,
+      hours: {
         weekday: '9:00 AM - 9:00 PM',
         saturday: '9:00 AM - 9:00 PM',
         sunday: '10:00 AM - 6:00 PM'
       },
-      services: ['Dry Cleaning', 'Laundry', 'Ironing'] // Placeholder
+      services: ['Dry Cleaning', 'Laundry', 'Ironing']
     }))
 
     return NextResponse.json(formattedStores)
