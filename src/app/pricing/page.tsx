@@ -12,6 +12,8 @@ type Service = {
   unit?: string
 }
 
+type ServiceIconKind = "shirt" | "linen" | "shoe" | "bag" | "express"
+
 type Store = {
   id: string
   name: string
@@ -31,6 +33,78 @@ type Plan = {
   isActive: boolean
   storeId: string | null
   store: Store | null
+}
+
+function detectServiceIcon(name: string, description: string): ServiceIconKind {
+  const tokens = `${name} ${description}`.toLowerCase()
+
+  if (tokens.includes("shoe") || tokens.includes("sneaker")) return "shoe"
+  if (tokens.includes("bag") || tokens.includes("handbag") || tokens.includes("leather")) return "bag"
+  if (
+    tokens.includes("bed") ||
+    tokens.includes("linen") ||
+    tokens.includes("blanket") ||
+    tokens.includes("comforter") ||
+    tokens.includes("pillow") ||
+    tokens.includes("curtain") ||
+    tokens.includes("sofa")
+  ) {
+    return "linen"
+  }
+  if (tokens.includes("express") || tokens.includes("same day") || tokens.includes("steam")) return "express"
+  return "shirt"
+}
+
+function ServiceIcon({ kind }: { kind: ServiceIconKind }) {
+  const common = {
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#1e40af",
+    strokeWidth: "1.8",
+  }
+
+  if (kind === "linen") {
+    return (
+      <svg {...common}>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M8 9h8M8 13h6" />
+      </svg>
+    )
+  }
+
+  if (kind === "shoe") {
+    return (
+      <svg {...common}>
+        <path d="M3 15c2 0 3-2 5-2s3 2 5 2h8v3H3z" />
+        <path d="M6 13V9l4 2" />
+      </svg>
+    )
+  }
+
+  if (kind === "bag") {
+    return (
+      <svg {...common}>
+        <rect x="5" y="8" width="14" height="11" rx="2" />
+        <path d="M9 8V7a3 3 0 0 1 6 0v1" />
+      </svg>
+    )
+  }
+
+  if (kind === "express") {
+    return (
+      <svg {...common}>
+        <path d="M13 2L4 14h6l-1 8 9-12h-6z" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M8 4l2 3h4l2-3 3 2-2 4v9H5v-9L3 6z" />
+    </svg>
+  )
 }
 
 export default function PricingPage() {
@@ -266,9 +340,33 @@ export default function PricingPage() {
           </div>
 
           <div style={{ display: "grid", gap: "1.25rem", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-            {services.map((service) => (
-              <div key={service.id} style={{ padding: "1.15rem", border: "1px solid #e5e7eb", borderRadius: "0.75rem", backgroundColor: "white" }}>
-                <h3 style={{ fontSize: "1.15rem", fontWeight: 600, marginTop: 0, marginBottom: "0.45rem", color: "#111827" }}>
+            {services.map((service) => {
+              const iconKind = detectServiceIcon(service.title, service.description || "")
+              return (
+              <div
+                key={service.id}
+                style={{
+                  padding: "1.15rem",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "0.75rem",
+                  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                }}
+              >
+                <div
+                  style={{
+                    width: "2.75rem",
+                    height: "2.75rem",
+                    borderRadius: "0.75rem",
+                    backgroundColor: "#dbeafe",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "0.8rem",
+                  }}
+                >
+                  <ServiceIcon kind={iconKind} />
+                </div>
+                <h3 style={{ fontSize: "1.15rem", fontWeight: 600, marginTop: 0, marginBottom: "0.45rem", color: "#111827", lineHeight: 1.25 }}>
                   {service.title}
                 </h3>
                 <p style={{ color: "#6b7280", marginBottom: "0.9rem", minHeight: "2.3rem" }}>
@@ -281,7 +379,7 @@ export default function PricingPage() {
                   <div style={{ color: "#6b7280" }}>{service.unit ? `${service.unit}` : ""}</div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </section>
       </div>

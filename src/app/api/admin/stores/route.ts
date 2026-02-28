@@ -18,8 +18,27 @@ export async function GET(req: Request) {
     const stores = await prisma.store.findMany({
       where: franchiseId ? { franchiseId } : {},
       include: { 
-        franchise: true, 
-        admin: true,
+        franchise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }, 
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true
+          }
+        },
         _count: {
           select: {
             orders: true
@@ -75,7 +94,15 @@ export async function POST(req: Request) {
 
     // Validate franchise exists
     const franchise = await prisma.franchise.findUnique({
-      where: { id: franchiseId }
+      where: { id: franchiseId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
     })
     
     if (!franchise) {
@@ -86,7 +113,15 @@ export async function POST(req: Request) {
     let isNewAdmin = false
     
     // Check if user already exists
-    admin = await prisma.user.findUnique({ where: { email: managerEmail } })
+    admin = await prisma.user.findUnique({
+      where: { email: managerEmail },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true
+      }
+    })
     
     if (admin) {
       // Update existing user to STORE_ADMIN role and update details
@@ -98,6 +133,12 @@ export async function POST(req: Request) {
           lastName: managerLastName,
           phone: managerPhone,
           isActive: true
+        },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true
         }
       })
     } else {
@@ -126,6 +167,12 @@ export async function POST(req: Request) {
           phone: managerPhone,
           role: UserRole.STORE_ADMIN,
           isActive: true
+        },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true
         }
       })
       isNewAdmin = true
@@ -159,8 +206,27 @@ export async function POST(req: Request) {
         isActive: true
       },
       include: {
-        franchise: true,
-        admin: true,
+        franchise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true
+          }
+        },
         _count: {
           select: {
             orders: true

@@ -26,7 +26,18 @@ export async function GET(request: NextRequest) {
       // Verify store exists
       const store = await prisma.store.findUnique({ 
         where: { id: storeId },
-        include: { franchise: true }
+        include: {
+          franchise: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          }
+        }
       })
       
       if (!store) {

@@ -23,7 +23,16 @@ export async function GET(req: Request) {
           include: {
             store: {
               include: {
-                franchise: true
+                franchise: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    isActive: true,
+                    createdAt: true,
+                    updatedAt: true
+                  }
+                }
               }
             }
           }
@@ -102,7 +111,16 @@ export async function POST(req: Request) {
           include: {
             store: {
               include: {
-                franchise: true
+                franchise: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    isActive: true,
+                    createdAt: true,
+                    updatedAt: true
+                  }
+                }
               }
             }
           }

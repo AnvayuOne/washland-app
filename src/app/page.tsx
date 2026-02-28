@@ -9,6 +9,73 @@ import useNearestStore from '@/hooks/useNearestStore'
 import ScrollObserver from '@/components/ScrollObserver'
 import { defaultPricing } from '@/lib/defaults'
 
+type ServiceIconKind = 'shirt' | 'linen' | 'shoe' | 'bag' | 'express'
+
+function detectServiceIcon(name: string, description: string): ServiceIconKind {
+  const tokens = `${name} ${description}`.toLowerCase()
+
+  if (tokens.includes('shoe') || tokens.includes('sneaker')) return 'shoe'
+  if (tokens.includes('bag') || tokens.includes('handbag') || tokens.includes('leather')) return 'bag'
+  if (
+    tokens.includes('bed') ||
+    tokens.includes('linen') ||
+    tokens.includes('blanket') ||
+    tokens.includes('comforter') ||
+    tokens.includes('pillow') ||
+    tokens.includes('curtain') ||
+    tokens.includes('sofa')
+  ) {
+    return 'linen'
+  }
+  if (tokens.includes('express') || tokens.includes('same day') || tokens.includes('steam')) return 'express'
+  return 'shirt'
+}
+
+function ServiceIcon({ kind }: { kind: ServiceIconKind }) {
+  const common = { width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: '#1e40af', strokeWidth: '1.8' }
+
+  if (kind === 'linen') {
+    return (
+      <svg {...common}>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M8 9h8M8 13h6" />
+      </svg>
+    )
+  }
+
+  if (kind === 'shoe') {
+    return (
+      <svg {...common}>
+        <path d="M3 15c2 0 3-2 5-2s3 2 5 2h8v3H3z" />
+        <path d="M6 13V9l4 2" />
+      </svg>
+    )
+  }
+
+  if (kind === 'bag') {
+    return (
+      <svg {...common}>
+        <rect x="5" y="8" width="14" height="11" rx="2" />
+        <path d="M9 8V7a3 3 0 0 1 6 0v1" />
+      </svg>
+    )
+  }
+
+  if (kind === 'express') {
+    return (
+      <svg {...common}>
+        <path d="M13 2L4 14h6l-1 8 9-12h-6z" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M8 4l2 3h4l2-3 3 2-2 4v9H5v-9L3 6z" />
+    </svg>
+  )
+}
+
 export default function HomePage() {
   const { loading, error, nearest } = useNearestStore(12)
   const [pricing, setPricing] = useState<any[] | null>(null)
@@ -16,12 +83,12 @@ export default function HomePage() {
 
   useEffect(() => {
     let mounted = true
-    fetch('/api/pricing')
+    fetch('/api/pricing?limit=6')
       .then((r) => r.json())
       .then((j) => {
         if (!mounted) return
         // If API returns an empty array (or malformed), use defaultPricing as a resilient fallback
-        const data = Array.isArray(j?.data) && j.data.length > 0 ? j.data : defaultPricing
+        const data = Array.isArray(j?.data) && j.data.length > 0 ? j.data : defaultPricing.slice(0, 6)
         setPricing(data)
       })
       .catch(() => {
@@ -487,19 +554,34 @@ export default function HomePage() {
           </div>
           
           <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-              {((pricingLoading ? Array.from({ length: 6 }) : (pricing ?? defaultPricing))).map((service: any, index: number) => {
+              {((pricingLoading ? Array.from({ length: 6 }) : (pricing ?? defaultPricing.slice(0, 6)))).map((service: any, index: number) => {
               const key = service?.id ?? `svc-${index}`
               const name = service?.title ?? service?.name ?? 'Service'
               const desc = service?.description ?? ''
               const price = service?.price ?? undefined
               const unit = service?.unit ?? ''
+              const iconKind = detectServiceIcon(name, desc)
 
               return (
-                <div key={key} className="card fade-in" style={{ textAlign: 'center', border: '1px solid #e5e7eb', animationDelay: `${index * 80}ms`, padding: '1.25rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1e40af' }}>
+                <div
+                  key={key}
+                  className="card fade-in"
+                  style={{
+                    textAlign: 'left',
+                    border: '1px solid #e5e7eb',
+                    animationDelay: `${index * 80}ms`,
+                    padding: '1.25rem',
+                    borderRadius: '0.85rem',
+                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
+                  }}
+                >
+                  <div style={{ width: '2.75rem', height: '2.75rem', borderRadius: '0.75rem', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                    <ServiceIcon kind={iconKind} />
+                  </div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1e40af', lineHeight: 1.25 }}>
                     {pricingLoading ? 'Loading...' : name}
                   </h3>
-                  <p style={{ color: '#6b7280', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                  <p style={{ color: '#6b7280', marginBottom: '1rem', fontSize: '0.875rem', minHeight: '2.35rem' }}>
                     {pricingLoading ? ' ' : desc}
                   </p>
                   <p style={{ fontSize: '1.125rem', fontWeight: '600', color: '#059669' }}>
@@ -508,6 +590,21 @@ export default function HomePage() {
                 </div>
               )
             })}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <Link
+              href="/pricing"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#1e40af',
+                fontWeight: '600',
+                textDecoration: 'none'
+              }}
+            >
+              View More Services
+            </Link>
           </div>
         </div>
       </section>

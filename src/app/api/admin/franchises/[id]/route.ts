@@ -9,7 +9,40 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const { id } = await params
-    const franchise = await prisma.franchise.findUnique({ where: { id }, include: { stores: true, admin: true } })
+    const franchise = await prisma.franchise.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        stores: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            isActive: true,
+            createdAt: true,
+            _count: {
+              select: {
+                orders: true
+              }
+            }
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    })
     if (!franchise) return NextResponse.json({ error: 'not found' }, { status: 404 })
     return NextResponse.json(franchise)
   } catch (err) {
@@ -32,14 +65,50 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (description !== undefined) data.description = description
 
     if (adminEmail) {
-      let admin = await prisma.user.findUnique({ where: { email: adminEmail } })
+      let admin = await prisma.user.findUnique({
+        where: { email: adminEmail },
+        select: {
+          id: true
+        }
+      })
       if (!admin) {
-        admin = await prisma.user.create({ data: { email: adminEmail, password: '', firstName: 'Franchise', lastName: 'Admin', role: UserRole.FRANCHISE_ADMIN, isActive: true } })
+        admin = await prisma.user.create({
+          data: {
+            email: adminEmail,
+            password: '',
+            firstName: 'Franchise',
+            lastName: 'Admin',
+            role: UserRole.FRANCHISE_ADMIN,
+            isActive: true
+          },
+          select: {
+            id: true
+          }
+        })
       }
       data.adminId = admin.id
     }
 
-    const updated = await prisma.franchise.update({ where: { id }, data })
+    const updated = await prisma.franchise.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    })
     return NextResponse.json(updated)
   } catch (err) {
     console.error('franchise PUT error', err)

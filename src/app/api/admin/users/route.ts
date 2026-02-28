@@ -4,6 +4,59 @@ import requireAdminHybrid from '../../../../../src/lib/hybrid-auth'
 import { checkUserDuplicates, getDuplicateErrorMessage } from '../../../../../src/lib/user-validation'
 import { UserRole } from '@prisma/client'
 
+const userResponseSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  role: true,
+  isActive: true,
+  franchiseId: true,
+  storeId: true,
+  createdAt: true,
+  updatedAt: true,
+  managedFranchises: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  },
+  managedStores: {
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      city: true,
+      state: true,
+      zipCode: true,
+      phone: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      franchise: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }
+    }
+  },
+  _count: {
+    select: {
+      orders: true
+    }
+  }
+} as const
+
 export async function GET(req: Request) {
   try {
     const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
@@ -19,19 +72,7 @@ export async function GET(req: Request) {
 
     const users = await prisma.user.findMany({
       where: whereClause,
-      include: {
-        managedFranchises: true,
-        managedStores: {
-          include: {
-            franchise: true
-          }
-        },
-        _count: {
-          select: {
-            orders: true
-          }
-        }
-      },
+      select: userResponseSelect,
       orderBy: { createdAt: 'desc' }
     })
     
@@ -86,26 +127,15 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.create({
       data: userData,
-      include: {
-        managedFranchises: true,
-        managedStores: {
-          include: {
-            franchise: true
-          }
-        },
-        _count: {
-          select: {
-            orders: true
-          }
-        }
-      }
+      select: userResponseSelect
     })
 
     // Update franchise admin if specified
     if (role === 'FRANCHISE_ADMIN' && franchiseId) {
       await prisma.franchise.update({
         where: { id: franchiseId },
-        data: { adminId: user.id }
+        data: { adminId: user.id },
+        select: { id: true }
       })
     }
 

@@ -22,21 +22,24 @@ interface DashboardStats {
   activeRiders: number
 }
 
+const EMPTY_DASHBOARD_STATS: DashboardStats = {
+  todaysOrders: 0,
+  pendingPickups: 0,
+  readyForDelivery: 0,
+  totalCustomers: 0,
+  monthlyRevenue: 0,
+  activeRiders: 0
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
   const toast = useToast()
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null)
+  const [activeStoreId, setActiveStoreId] = useState<string>('')
   const [userName, setUserName] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string>('')
   const [userRole, setUserRole] = useState<string>('')
-  const [stats, setStats] = useState<DashboardStats>({
-    todaysOrders: 0,
-    pendingPickups: 0,
-    readyForDelivery: 0,
-    totalCustomers: 0,
-    monthlyRevenue: 0,
-    activeRiders: 0
-  })
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_DASHBOARD_STATS)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function AdminDashboard() {
 
     setUserRole(role)
     setUserEmail(email || '')
+    setActiveStoreId(storeId)
 
     // Get user name from custom auth event or localStorage
     const handleAuthUpdate = (e: CustomEvent) => {
@@ -115,27 +119,11 @@ export default function AdminDashboard() {
         const data = await response.json()
         setStats(data.stats)
       } else {
-        // Fallback to mock data for now
-        setStats({
-          todaysOrders: Math.floor(Math.random() * 25) + 5,
-          pendingPickups: Math.floor(Math.random() * 15) + 3,
-          readyForDelivery: Math.floor(Math.random() * 12) + 2,
-          totalCustomers: Math.floor(Math.random() * 200) + 50,
-          monthlyRevenue: Math.floor(Math.random() * 50000) + 10000,
-          activeRiders: Math.floor(Math.random() * 8) + 2
-        })
+        setStats(EMPTY_DASHBOARD_STATS)
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
-      // Use fallback mock data
-      setStats({
-        todaysOrders: Math.floor(Math.random() * 25) + 5,
-        pendingPickups: Math.floor(Math.random() * 15) + 3,
-        readyForDelivery: Math.floor(Math.random() * 12) + 2,
-        totalCustomers: Math.floor(Math.random() * 200) + 50,
-        monthlyRevenue: Math.floor(Math.random() * 50000) + 10000,
-        activeRiders: Math.floor(Math.random() * 8) + 2
-      })
+      setStats(EMPTY_DASHBOARD_STATS)
     }
   }
 
@@ -219,7 +207,7 @@ export default function AdminDashboard() {
           <StatCard
             title="Today's Orders"
             value={stats.todaysOrders.toString()}
-            change={`${stats.todaysOrders > 10 ? '+' : ''}${Math.floor(Math.random() * 20)}% from yesterday`}
+            change="Compared to yesterday"
             color="#3b82f6"
             icon={<OrdersIcon />}
           />
@@ -240,7 +228,7 @@ export default function AdminDashboard() {
           <StatCard
             title="Total Customers"
             value={stats.totalCustomers.toString()}
-            change={`${Math.floor(Math.random() * 10) + 1} new this week`}
+            change="Customer base for this store"
             color="#8b5cf6"
             icon={<CustomersIcon />}
           />
@@ -313,7 +301,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <RecentActivity storeId={storeInfo?.id || ''} />
+        <RecentActivity storeId={activeStoreId} />
       </div>
     </StoreAdminLayout>
   )
@@ -441,14 +429,84 @@ function QuickActionCard({ title, description, href, icon, color }: QuickActionC
   )
 }
 
+interface ActivityRecord {
+  id: string
+  type: string
+  description: string
+  createdAt: string
+}
+
+function formatTimeAgo(input: string) {
+  const now = Date.now()
+  const then = new Date(input).getTime()
+  const diffMs = Math.max(0, now - then)
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+}
+
+function statusForActivityType(type: string): 'completed' | 'in-progress' | 'warning' | 'info' {
+  switch (type) {
+    case 'ORDER_COMPLETED':
+    case 'PAYMENT_RECEIVED':
+      return 'completed'
+    case 'ORDER_PLACED':
+    case 'RIDER_STATUS_UPDATE':
+      return 'in-progress'
+    case 'REFERRAL_REWARDED':
+      return 'warning'
+    default:
+      return 'info'
+  }
+}
+
 function RecentActivity({ storeId }: { storeId: string }) {
-  const [activities] = useState([
-    { id: 1, type: 'order', message: 'New order received from Ravi Kumar', time: '2 minutes ago', status: 'pending' },
-    { id: 2, type: 'pickup', message: 'Pickup completed for order #1234', time: '15 minutes ago', status: 'completed' },
-    { id: 3, type: 'delivery', message: 'Order #1233 out for delivery', time: '30 minutes ago', status: 'in-progress' },
-    { id: 4, type: 'customer', message: 'New customer registration: Priya Sharma', time: '1 hour ago', status: 'info' },
-    { id: 5, type: 'inventory', message: 'Low stock alert: Fabric softener', time: '2 hours ago', status: 'warning' }
-  ])
+  const [activities, setActivities] = useState<ActivityRecord[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isActive = true
+
+    const fetchRecentActivity = async () => {
+      if (!storeId) {
+        if (isActive) {
+          setActivities([])
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/admin/activities?limit=10&storeId=${encodeURIComponent(storeId)}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch recent activity')
+        }
+
+        const payload = await response.json()
+        if (isActive) {
+          setActivities(Array.isArray(payload.activities) ? payload.activities : [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch store recent activity:', error)
+        if (isActive) {
+          setActivities([])
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchRecentActivity()
+    return () => {
+      isActive = false
+    }
+  }, [storeId])
 
   return (
     <div style={{
@@ -467,7 +525,13 @@ function RecentActivity({ storeId }: { storeId: string }) {
       </h3>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {activities.map((activity) => (
+        {loading && (
+          <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>Loading activity...</div>
+        )}
+        {!loading && activities.length === 0 && (
+          <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>No recent activity found for this store.</div>
+        )}
+        {!loading && activities.map((activity) => (
           <div 
             key={activity.id}
             style={{
@@ -483,9 +547,9 @@ function RecentActivity({ storeId }: { storeId: string }) {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: activity.status === 'completed' ? '#10b981' : 
-                            activity.status === 'in-progress' ? '#f59e0b' : 
-                            activity.status === 'warning' ? '#ef4444' : '#3b82f6',
+              backgroundColor: statusForActivityType(activity.type) === 'completed' ? '#10b981' : 
+                            statusForActivityType(activity.type) === 'in-progress' ? '#f59e0b' : 
+                            statusForActivityType(activity.type) === 'warning' ? '#ef4444' : '#3b82f6',
               marginRight: '0.75rem',
               flexShrink: 0
             }} />
@@ -496,13 +560,13 @@ function RecentActivity({ storeId }: { storeId: string }) {
                 color: '#111827',
                 marginBottom: '0.25rem'
               }}>
-                {activity.message}
+                {activity.description}
               </p>
               <p style={{ 
                 fontSize: '0.75rem', 
                 color: '#6b7280'
               }}>
-                {activity.time}
+                {formatTimeAgo(activity.createdAt)}
               </p>
             </div>
           </div>

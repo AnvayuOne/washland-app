@@ -86,6 +86,11 @@ export default function DashboardSidebar({
           ]
         },
         {
+          label: 'Inventory',
+          href: '/washland/inventory',
+          icon: <InventoryIcon />
+        },
+        {
           label: 'Orders',
           href: '/washland/orders',
           icon: <OrdersIcon />,
@@ -149,6 +154,16 @@ export default function DashboardSidebar({
           icon: <OrdersIcon />
         },
         {
+          label: 'Services',
+          href: '/franchise/services',
+          icon: <ServicesIcon />
+        },
+        {
+          label: 'Inventory',
+          href: '/franchise/inventory',
+          icon: <InventoryIcon />
+        },
+        {
           label: 'Staff',
           href: '/franchise/staff',
           icon: <UsersIcon />,
@@ -190,6 +205,11 @@ export default function DashboardSidebar({
           label: 'Customers',
           href: '/admin/customers',
           icon: <CustomersIcon />
+        },
+        {
+          label: 'Services',
+          href: '/admin/services',
+          icon: <ServicesIcon />
         },
         {
           label: 'Inventory',

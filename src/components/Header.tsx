@@ -11,6 +11,7 @@ export default function Header() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [localRole, setLocalRole] = useState<string | null>(null)
+  const isLoggedIn = Boolean(session || localRole)
 
   // Check localStorage on mount and set up storage listener
   useEffect(() => {
@@ -159,27 +160,31 @@ export default function Header() {
           {/* Center Navigation - Main menu items */}
           {shouldShowPublicNav() && (
             <nav className={styles.navLeft}>
-            <Link href="/franchise" className={styles.navItem}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v11a2 2 0 002 2h10a2 2 0 002-2V7M9 7V5a3 3 0 016 0v2" />
-              </svg>
-              <span>Franchise</span>
-            </Link>
+            {!isLoggedIn && (
+              <>
+                <Link href="/franchise" className={styles.navItem}>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v11a2 2 0 002 2h10a2 2 0 002-2V7M9 7V5a3 3 0 016 0v2" />
+                  </svg>
+                  <span>Franchise</span>
+                </Link>
 
-            <Link href="/locations" className={styles.navItem}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>Stores</span>
-            </Link>
+                <Link href="/locations" className={styles.navItem}>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Stores</span>
+                </Link>
 
-            <Link href="/pricing" className={styles.navItem}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-              <span>Pricing</span>
-            </Link>
+                <Link href="/pricing" className={styles.navItem}>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                  <span>Pricing</span>
+                </Link>
+              </>
+            )}
 
             <Link href="/book-service" className={`${styles.navItem} ${styles.bookNowButton}`}>
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

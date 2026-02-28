@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { signIn } from 'next-auth/react'
 import { useToast } from '@/components/ToastProvider'
 
 interface Store {
@@ -88,6 +89,20 @@ export default function AdminLoginPage() {
       console.log('Response data:', data)
 
       if (response.ok) {
+        // Also establish a real NextAuth session so middleware-protected routes
+        // survive refresh/back navigation.
+        const signInResult = await signIn('credentials', {
+          email,
+          password,
+          redirect: false
+        })
+
+        if (!signInResult || signInResult.error) {
+          setError('Login session could not be created. Please try again.')
+          toast.error('Login Failed', 'Unable to create session. Please try again.')
+          return
+        }
+
         // Store authentication data
         localStorage.setItem('userRole', data.user.role)
         localStorage.setItem('userEmail', data.user.email)

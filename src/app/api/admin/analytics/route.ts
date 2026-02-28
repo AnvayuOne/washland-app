@@ -246,7 +246,11 @@ export async function GET(req: Request) {
               some: whereClause
             }
           },
-          include: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
             _count: {
               select: {
                 orders: true

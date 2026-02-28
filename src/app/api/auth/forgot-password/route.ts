@@ -12,7 +12,11 @@ export async function POST(req: Request) {
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() }
+      where: { email: email.toLowerCase().trim() },
+      select: {
+        id: true,
+        email: true
+      }
     })
 
     if (!user) {

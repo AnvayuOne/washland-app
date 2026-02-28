@@ -120,6 +120,8 @@ model User {
   referralReceived  Referral?   @relation("ReferralReferred")
   loyaltyPoints     LoyaltyPoint[]
   wallet            Wallet?
+  inventoryItemsCreated InventoryItem[]     @relation("InventoryCreatedBy")
+  inventoryMovements    InventoryMovement[] @relation("InventoryMovedBy")
 
   activities         Activity[]
   passwordResetTokens PasswordResetToken[]
@@ -150,6 +152,7 @@ model Franchise {
   updatedAt   DateTime @updatedAt
 
   stores      Store[]
+  franchiseServices FranchiseService[]
 
   @@map("franchises")
 }
@@ -176,6 +179,8 @@ model Store {
   storeServices StoreService[]
   subscriptionPlans SubscriptionPlan[]
   subscriptions Subscription[]
+  inventoryItems InventoryItem[]
+  inventoryMovements InventoryMovement[]
 
   @@map("stores")
 }
@@ -210,12 +215,30 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  franchiseServices FranchiseService[]
   storeServices StoreService[]
   orderItems    OrderItem[]
   cartItems     CartItem[]
   subscriptionItems SubscriptionItem[]
 
   @@map("services")
+}
+
+model FranchiseService {
+  id          String   @id @default(cuid())
+  franchiseId String
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  defaultPrice Decimal?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([franchiseId, serviceId])
+  @@index([franchiseId, isActive])
+  @@index([serviceId])
+  @@map("franchise_services")
 }
 
 model ServiceCategory {
@@ -457,6 +480,25 @@ enum WalletTxType {
   DEBIT
 }
 
+enum InventoryItemType {
+  CONSUMABLE
+  CHEMICAL
+  PACKAGING
+  MACHINE
+  SPARE_PART
+  OTHER
+}
+
+enum InventoryMovementType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  WASTAGE
+  TRANSFER_IN
+  TRANSFER_OUT
+  MAINTENANCE
+}
+
 model Referral {
   id          String         @id @default(cuid())
   code        String         // Removed @unique to allow multiple uses of same code
@@ -519,4 +561,53 @@ model LoyaltyConfiguration {
   updatedAt             DateTime @updatedAt
   
   @@map("loyalty_configuration")
+}
+
+model InventoryItem {
+  id            String            @id @default(cuid())
+  storeId       String
+  store         Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name          String
+  sku           String?
+  type          InventoryItemType @default(CONSUMABLE)
+  unit          String            @default("UNIT")
+  currentStock  Decimal           @default(0)
+  reorderLevel  Decimal           @default(0)
+  maxStockLevel Decimal?
+  costPerUnit   Decimal?
+  notes         String?
+  isActive      Boolean           @default(true)
+  createdById   String?
+  createdBy     User?             @relation("InventoryCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  movements     InventoryMovement[]
+
+  @@unique([storeId, name])
+  @@index([storeId, isActive])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String                @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem         @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  storeId         String
+  store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  type            InventoryMovementType
+  quantity        Decimal
+  stockBefore     Decimal
+  stockAfter      Decimal
+  unitCost        Decimal?
+  totalCost       Decimal?
+  note            String?
+  reference       String?
+  createdById     String?
+  createdBy       User?                 @relation("InventoryMovedBy", fields: [createdById], references: [id])
+  createdAt       DateTime              @default(now())
+
+  @@index([inventoryItemId, createdAt])
+  @@index([storeId, createdAt])
+  @@map("inventory_movements")
 }

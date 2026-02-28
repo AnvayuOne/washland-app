@@ -131,6 +131,7 @@ export async function POST(
       metadata: {
         orderId: updatedOrder.id,
         orderNumber: updatedOrder.orderNumber,
+        storeId: updatedOrder.storeId,
         from: fromStatus,
         to: toStatus,
         riderStatus: requestedStatus,

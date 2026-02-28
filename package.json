@@ -11,9 +11,13 @@
     "type-check": "tsc --noEmit",
     "postinstall": "prisma generate",
     "prisma:generate": "npx prisma generate",
+    "prisma:seed": "npx prisma db seed",
     "prisma:migrate:dev": "npx prisma migrate dev --name init --preview-feature",
     "prisma:migrate:deploy": "npx prisma migrate deploy",
     "prisma:studio": "npx prisma studio"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": [
     "washland",

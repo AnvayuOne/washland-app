@@ -17,7 +17,11 @@ export async function POST(req: Request) {
     // Find valid reset token
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
-      include: { user: true }
+      select: {
+        id: true,
+        userId: true,
+        expiresAt: true
+      }
     })
 
     if (!resetToken) {
@@ -39,7 +43,8 @@ export async function POST(req: Request) {
     // Update user password
     await prisma.user.update({
       where: { id: resetToken.userId },
-      data: { password: hashedPassword }
+      data: { password: hashedPassword },
+      select: { id: true }
     })
 
     // Delete used token

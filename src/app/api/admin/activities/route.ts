@@ -1,21 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin } from '@/lib/require-admin'
+import { requireAdminHybrid } from '@/lib/hybrid-auth'
+import { getScope } from '@/lib/scope'
+import { UserRole } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is authenticated and is an admin
-    const authResult = await requireAdmin()
+    // Scope enforcement: NextAuth role check first, then tenant scope filter by store.
+    const authResult = await requireAdminHybrid(request, [UserRole.SUPER_ADMIN, UserRole.STORE_ADMIN])
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const requestedStoreId = searchParams.get('storeId')?.trim() || null
+
+    const activityWhere: any = {}
+    let effectiveStoreId: string | null = null
+
+    if (scope.role === UserRole.STORE_ADMIN) {
+      const allowedStoreIds = Array.from(new Set([scope.storeId, ...scope.managedStoreIds].filter(Boolean)))
+      if (!allowedStoreIds.length) {
+        return NextResponse.json({ error: 'Store context missing for this account' }, { status: 403 })
+      }
+
+      if (requestedStoreId && !allowedStoreIds.includes(requestedStoreId)) {
+        return NextResponse.json({ error: 'Store is outside your tenant scope' }, { status: 403 })
+      }
+
+      effectiveStoreId = requestedStoreId || allowedStoreIds[0]
+    } else if (requestedStoreId) {
+      effectiveStoreId = requestedStoreId
+    }
+
+    if (effectiveStoreId) {
+      activityWhere.OR = [
+        {
+          metadata: {
+            path: ['storeId'],
+            equals: effectiveStoreId,
+          },
+        },
+      ]
+    }
 
     // Fetch recent activities with user information
     const activities = await prisma.activity.findMany({
+      where: activityWhere,
       take: limit,
       skip: offset,
       orderBy: {
@@ -49,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       activities: transformedActivities,
-      total: await prisma.activity.count()
+      total: await prisma.activity.count({ where: activityWhere })
     })
 
   } catch (error) {

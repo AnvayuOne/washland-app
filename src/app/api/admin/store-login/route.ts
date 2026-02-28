@@ -11,8 +11,7 @@ export async function POST(request: NextRequest) {
       email, 
       hasPassword: !!password, 
       storeId, 
-      storeIdType: typeof storeId,
-      fullBody: body 
+      storeIdType: typeof storeId
     })
 
     // Validation
@@ -41,15 +40,55 @@ export async function POST(request: NextRequest) {
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        password: true,
+        role: true,
+        isActive: true,
         managedStores: {
-          include: {
-            franchise: true
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            adminId: true,
+            franchiseId: true,
+            franchise: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            }
           }
         },
         managedFranchises: {
-          include: {
-            stores: true
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            stores: {
+              select: {
+                id: true,
+                name: true,
+                city: true,
+                state: true,
+                adminId: true,
+                franchiseId: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            }
           }
         }
       }
@@ -102,8 +141,27 @@ export async function POST(request: NextRequest) {
     const requestedStore = await prisma.store.findUnique({
       where: { id: storeId },
       include: {
-        franchise: true,
-        admin: true
+        franchise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true
+          }
+        }
       }
     })
 

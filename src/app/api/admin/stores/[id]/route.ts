@@ -13,8 +13,27 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const store = await prisma.store.findUnique({
       where: { id },
       include: {
-        franchise: true,
-        admin: true,
+        franchise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true
+          }
+        },
         _count: {
           select: {
             orders: true
@@ -89,7 +108,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Handle manager update
     if (managerEmail && managerFirstName && managerLastName) {
-      let admin = await prisma.user.findUnique({ where: { email: managerEmail } })
+      let admin = await prisma.user.findUnique({
+        where: { email: managerEmail },
+        select: {
+          id: true,
+          phone: true,
+          role: true
+        }
+      })
       
       if (admin) {
         // Update existing user to be store admin if needed
@@ -101,6 +127,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
               firstName: managerFirstName,
               lastName: managerLastName,
               phone: managerPhone || admin.phone
+            },
+            select: {
+              id: true,
+              phone: true,
+              role: true
             }
           })
         }
@@ -115,6 +146,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             phone: managerPhone || '',
             role: UserRole.STORE_ADMIN,
             isActive: true
+          },
+          select: {
+            id: true,
+            phone: true,
+            role: true
           }
         })
       }
@@ -126,8 +162,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       where: { id },
       data: updateData,
       include: {
-        franchise: true,
-        admin: true,
+        franchise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true
+          }
+        },
         _count: {
           select: {
             orders: true

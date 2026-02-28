@@ -3,6 +3,59 @@ import { prisma } from '../../../../../../src/lib/prisma'
 import requireAdminHybrid from '../../../../../../src/lib/hybrid-auth'
 import { UserRole } from '@prisma/client'
 
+const userResponseSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  role: true,
+  isActive: true,
+  franchiseId: true,
+  storeId: true,
+  createdAt: true,
+  updatedAt: true,
+  managedFranchises: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  },
+  managedStores: {
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      city: true,
+      state: true,
+      zipCode: true,
+      phone: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      franchise: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }
+    }
+  },
+  _count: {
+    select: {
+      orders: true
+    }
+  }
+} as const
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
@@ -12,19 +65,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        managedFranchises: true,
-        managedStores: {
-          include: {
-            franchise: true
-          }
-        },
-        _count: {
-          select: {
-            orders: true
-          }
-        }
-      }
+      select: userResponseSelect
     })
     
     if (!user) {
@@ -58,7 +99,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id }
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        role: true
+      }
     })
     
     if (!existingUser) {
@@ -68,7 +114,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     // Check if email is being changed and if it already exists
     if (email && email !== existingUser.email) {
       const emailExists = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
+        select: { id: true }
       })
       
       if (emailExists) {
@@ -96,19 +143,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
-      include: {
-        managedFranchises: true,
-        managedStores: {
-          include: {
-            franchise: true
-          }
-        },
-        _count: {
-          select: {
-            orders: true
-          }
-        }
-      }
+      select: userResponseSelect
     })
 
     // Handle role-specific assignments
@@ -116,7 +151,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       // Update franchise to use this admin
       await prisma.franchise.update({
         where: { id: franchiseId },
-        data: { adminId: updatedUser.id }
+        data: { adminId: updatedUser.id },
+        select: { id: true }
       })
     }
 
@@ -146,7 +182,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id }
+      where: { id },
+      select: {
+        id: true,
+        role: true
+      }
     })
     
     if (!existingUser) {
@@ -161,19 +201,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const updatedUser = await prisma.user.update({
       where: { id },
       data: { isActive },
-      include: {
-        managedFranchises: true,
-        managedStores: {
-          include: {
-            franchise: true
-          }
-        },
-        _count: {
-          select: {
-            orders: true
-          }
-        }
-      }
+      select: userResponseSelect
     })
 
     return NextResponse.json(updatedUser)
@@ -193,9 +221,24 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id },
-      include: {
-        managedFranchises: true,
-        managedStores: true,
+      select: {
+        id: true,
+        role: true,
+        managedFranchises: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        managedStores: {
+          select: {
+            id: true
+          }
+        },
         _count: {
           select: {
             orders: true

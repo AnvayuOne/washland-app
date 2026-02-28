@@ -22,7 +22,7 @@ interface Franchise {
     city: string
     state: string
     isActive: boolean
-    _count: {
+    _count?: {
       orders: number
     }
   }>
@@ -119,7 +119,7 @@ export default function FranchiseViewPage() {
 
   const totalStores = franchise.stores.length
   const activeStores = franchise.stores.filter(s => s.isActive).length
-  const totalOrders = franchise.stores.reduce((sum, store) => sum + store._count.orders, 0)
+  const totalOrders = franchise.stores.reduce((sum, store) => sum + (store._count?.orders || 0), 0)
 
   return (
     <DashboardLayout
@@ -434,7 +434,7 @@ export default function FranchiseViewPage() {
                       </td>
                       <td style={tableCellStyle}>
                         <span style={{ fontWeight: '500', color: '#111827' }}>
-                          {store._count.orders}
+                          {store._count?.orders || 0}
                         </span>
                       </td>
                       <td style={tableCellStyle}>

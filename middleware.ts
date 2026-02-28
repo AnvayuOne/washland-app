@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 // Intended protection:
 // - Public: /auth/* and role login pages (/admin/login, /washland/login, /franchise/login, /rider/login)
 // - Protected: all other /admin/*, /washland/*, /franchise/*, /rider/*, /customer/*,
-//   and private API namespaces (/api/admin/*, /api/customer/*, /api/rider/*, /api/franchise/*)
+//   and private API namespaces (/api/admin/*, /api/customer/*, /api/rider/*, /api/franchise/*, /api/inventory/*)
 const PUBLIC_ROUTE_PREFIXES = ["/auth/"]
 const PUBLIC_EXACT_ROUTES = [
   "/denied",
@@ -112,6 +112,10 @@ export default withAuth(
       return enforceRole(["FRANCHISE_ADMIN"])
     }
 
+    if (pathname.startsWith("/api/inventory")) {
+      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"])
+    }
+
     return NextResponse.next()
   },
   {
@@ -137,6 +141,7 @@ export const config = {
     "/api/admin/:path*",
     "/api/customer/:path*",
     "/api/rider/:path*",
-    "/api/franchise/:path*"
+    "/api/franchise/:path*",
+    "/api/inventory/:path*"
   ]
 }

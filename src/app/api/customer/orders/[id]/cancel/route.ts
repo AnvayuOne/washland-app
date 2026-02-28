@@ -99,6 +99,7 @@ export async function POST(
       metadata: {
         orderId: updated.id,
         orderNumber: updated.orderNumber,
+        storeId: updated.storeId,
         previousStatus: order.status,
         newStatus: updated.status,
       },

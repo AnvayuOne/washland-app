@@ -50,6 +50,9 @@ export async function PUT(request: NextRequest) {
       where: { id: scope.userId },
       data: {
         password: hashedNewPassword
+      },
+      select: {
+        id: true
       }
     })
 

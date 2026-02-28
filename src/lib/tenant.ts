@@ -7,6 +7,8 @@ export interface FranchiseContext {
   commissionRate: number
 }
 
+const DEFAULT_COMMISSION_RATE = 0.1
+
 type TenantDbClient = PrismaClient | Prisma.TransactionClient
 
 export async function requireFranchiseContext(
@@ -29,7 +31,6 @@ export async function requireFranchiseContext(
         select: {
           id: true,
           name: true,
-          commissionRate: true,
         },
         orderBy: {
           createdAt: "asc",
@@ -51,7 +52,8 @@ export async function requireFranchiseContext(
   return {
     franchiseId: managedFranchise.id,
     franchiseName: managedFranchise.name,
-    commissionRate: Number(managedFranchise.commissionRate ?? 0),
+    // Keep app functional when DB is behind on `franchises.commissionRate` migration.
+    commissionRate: DEFAULT_COMMISSION_RATE,
   }
 }
 

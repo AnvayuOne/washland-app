@@ -9,7 +9,12 @@ export async function GET(request: NextRequest) {
     
     // Try to find the test user
     const testUser = await prisma.user.findUnique({
-      where: { email: 'admin@washlandlaundry.in' }
+      where: { email: 'admin@washlandlaundry.in' },
+      select: {
+        id: true,
+        role: true,
+        isActive: true
+      }
     })
 
     return NextResponse.json({
@@ -32,7 +37,13 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json()
     
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      select: {
+        id: true,
+        password: true,
+        role: true,
+        isActive: true
+      }
     })
 
     if (!user) {

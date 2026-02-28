@@ -91,6 +91,8 @@ export default function FranchiseLayout({ children }: { children: ReactNode }) {
     { href: "/franchise/dashboard", label: "Dashboard" },
     { href: "/franchise/stores", label: "Stores" },
     { href: "/franchise/orders", label: "Orders" },
+    { href: "/franchise/services", label: "Services" },
+    { href: "/franchise/inventory", label: "Inventory" },
     { href: "/franchise/staff", label: "Staff" },
     { href: "/franchise/reports/commissions", label: "Commissions" },
   ]

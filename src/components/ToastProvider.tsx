@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -13,7 +13,6 @@ export interface Toast {
 }
 
 interface ToastContextType {
-  toasts: Toast[]
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
   success: (title: string, message?: string) => void
@@ -79,27 +78,24 @@ export function ToastProvider({ children }: ToastProviderProps) {
     addToastRef.current({ type: 'info', title, message })
   }, [])
 
-  const value: ToastContextType = {
-    toasts,
+  const value = useMemo<ToastContextType>(() => ({
     addToast,
     removeToast,
     success,
     error,
     warning,
     info
-  }
+  }), [addToast, removeToast, success, error, warning, info])
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastContainer />
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </ToastContext.Provider>
   )
 }
 
-function ToastContainer() {
-  const { toasts, removeToast } = useToast()
-
+function ToastContainer({ toasts, onRemoveToast }: { toasts: Toast[]; onRemoveToast: (id: string) => void }) {
   if (toasts.length === 0) return null
 
   return (
@@ -117,7 +113,7 @@ function ToastContainer() {
         <ToastItem
           key={toast.id}
           toast={toast}
-          onClose={() => removeToast(toast.id)}
+          onClose={() => onRemoveToast(toast.id)}
         />
       ))}
     </div>

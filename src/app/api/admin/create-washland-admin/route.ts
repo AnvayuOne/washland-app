@@ -29,7 +29,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'email and password are required' }, { status: 400 })
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true }
+    })
     if (existing) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 })
     }
@@ -44,6 +47,11 @@ export async function POST(req: Request) {
         lastName,
         role: role as UserRole,
         isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true
       }
     })
 

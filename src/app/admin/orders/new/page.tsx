@@ -12,6 +12,8 @@ interface Service {
   basePrice: number
   category: string
   isActive: boolean
+  globalBasePrice?: number
+  priceSource?: string
 }
 
 interface OrderItem {
@@ -95,10 +97,10 @@ export default function NewOrderPage() {
 
   // Fetch services + customer lookup data when auth data is available
   useEffect(() => {
-    if (userEmail && userRole) {
+    if (userEmail && userRole && storeId) {
       fetchInitialData()
     }
-  }, [userEmail, userRole])
+  }, [userEmail, userRole, storeId])
 
   const fetchInitialData = async () => {
     setLoading(true)
@@ -108,14 +110,28 @@ export default function NewOrderPage() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch('/api/admin/services?isActive=true', {
-        headers: {
-        }
-      })
+      const params = new URLSearchParams()
+      params.set('includeInactive', 'false')
+      if (storeId) {
+        params.set('storeId', storeId)
+      }
+      const response = await fetch(`/api/admin/store-services?${params.toString()}`)
 
       if (response.ok) {
         const data = await response.json()
-        setServices(data)
+        const mapped: Service[] = (data.services || [])
+          .filter((service: any) => Boolean(service.isAvailable))
+          .map((service: any) => ({
+            id: service.id,
+            name: service.name,
+            description: service.description || '',
+            category: service.category || 'General',
+            isActive: true,
+            basePrice: Number(service.effectivePrice ?? service.globalBasePrice ?? 0),
+            globalBasePrice: Number(service.globalBasePrice ?? 0),
+            priceSource: service.priceSource,
+          }))
+        setServices(mapped)
       } else {
         console.error('Failed to fetch services')
         toast.error('Error', 'Failed to load services')

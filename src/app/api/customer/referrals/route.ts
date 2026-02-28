@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: scope.userId },
       select: {
-        referralCode: true
+        id: true
       }
     })
 
@@ -26,10 +26,12 @@ export async function GET(request: NextRequest) {
       select: { pointsForReferral: true }
     })
 
+    const fallbackReferralCode = `WL${scope.userId.slice(-6).toUpperCase()}`
+
     return NextResponse.json({
       success: true,
       referral: {
-        referralCode: user.referralCode || 'GENERATE-ME',
+        referralCode: fallbackReferralCode,
         totalReferrals: 0,
         successfulReferrals: 0,
         pendingReferrals: 0,

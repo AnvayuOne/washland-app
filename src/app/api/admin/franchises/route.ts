@@ -21,10 +21,27 @@ export async function GET() {
 
     console.log('Fetching franchises from database...')
     const franchises = await prisma.franchise.findMany({ 
-      include: { 
-        stores: true, 
-        admin: true 
-      } 
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        stores: {
+          select: {
+            id: true
+          }
+        },
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
     })
     
     console.log('Raw franchises from DB:', franchises.length, 'items')
@@ -65,14 +82,26 @@ export async function POST(req: Request) {
     }
 
     // Check if admin user already exists
-    let admin = await prisma.user.findUnique({ where: { email: adminEmail } })
+    let admin = await prisma.user.findUnique({
+      where: { email: adminEmail },
+      select: {
+        id: true,
+        email: true,
+        role: true
+      }
+    })
     
     if (admin) {
       // User exists, update role to FRANCHISE_ADMIN if needed
       if (admin.role !== 'FRANCHISE_ADMIN') {
         admin = await prisma.user.update({
           where: { id: admin.id },
-          data: { role: 'FRANCHISE_ADMIN' }
+          data: { role: 'FRANCHISE_ADMIN' },
+          select: {
+            id: true,
+            email: true,
+            role: true
+          }
         })
       }
     } else {
@@ -101,7 +130,12 @@ export async function POST(req: Request) {
           phone: adminPhone || '',
           role: UserRole.FRANCHISE_ADMIN, 
           isActive: true 
-        } 
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true
+        }
       })
 
       // Send welcome email with temporary password
@@ -137,9 +171,26 @@ export async function POST(req: Request) {
         description: description || '', 
         adminId: admin.id 
       },
-      include: {
-        admin: true,
-        stores: true
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        stores: {
+          select: {
+            id: true
+          }
+        }
       }
     })
 
