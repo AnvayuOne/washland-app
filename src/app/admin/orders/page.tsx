@@ -39,6 +39,16 @@ interface Order {
     email: string
     phone: string
   }
+  latestRiderUpdate?: {
+    id: string
+    description: string
+    createdAt: string
+    user?: {
+      id: string
+      firstName: string
+      lastName: string
+    } | null
+  } | null
 }
 
 interface OrderItem {
@@ -55,6 +65,7 @@ interface Rider {
   lastName: string
   email: string
   phone: string
+  isAvailable: boolean
 }
 
 const statusColorMap: Record<OrderStatusValue, string> = {
@@ -113,12 +124,17 @@ export default function OrdersPage() {
 
     window.addEventListener('auth:session', handleAuthUpdate as EventListener)
 
-    // Pass the values directly to avoid state update timing issues
+    // Pass values directly to avoid state timing issues.
     fetchOrders(storeId, email || '', role || '')
     fetchRiders(storeId, email || '', role || '')
 
+    const pollingInterval = window.setInterval(() => {
+      fetchOrders(storeId, email || '', role || '')
+    }, 15000)
+
     return () => {
       window.removeEventListener('auth:session', handleAuthUpdate as EventListener)
+      window.clearInterval(pollingInterval)
     }
   }, [router, toast])
 
@@ -148,8 +164,6 @@ export default function OrdersPage() {
       
       const response = await fetch(`/api/admin/orders?storeId=${storeId}`, {
         headers: {
-          'x-user-email': authEmail,
-          'x-user-role': authRole
         }
       })
 
@@ -178,7 +192,8 @@ export default function OrdersPage() {
           createdAt: dbOrder.createdAt,
           updatedAt: dbOrder.updatedAt,
           pickupRider: dbOrder.pickupRider,
-          deliveryRider: dbOrder.deliveryRider
+          deliveryRider: dbOrder.deliveryRider,
+          latestRiderUpdate: dbOrder.latestRiderUpdate || null
         }))
         
         console.log('Transformed orders:', transformedOrders)
@@ -202,8 +217,6 @@ export default function OrdersPage() {
       
       const response = await fetch(`/api/admin/riders?storeId=${storeId}`, {
         headers: {
-          'x-user-email': authEmail,
-          'x-user-role': authRole
         }
       })
 
@@ -238,8 +251,6 @@ export default function OrdersPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         },
         body: JSON.stringify({ status: newStatus })
       })
@@ -276,8 +287,6 @@ export default function OrdersPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         },
         body: JSON.stringify(updateData)
       })
@@ -562,6 +571,11 @@ function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColo
             <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
               <strong>Payment:</strong> {order.paymentStatus === 'PAID' ? 'Paid' : 'Pending'}
             </p>
+            {order.latestRiderUpdate && (
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <strong>Latest Rider Update:</strong> {order.latestRiderUpdate.description} ({new Date(order.latestRiderUpdate.createdAt).toLocaleString()})
+              </p>
+            )}
           </div>
         </div>
 
@@ -705,8 +719,8 @@ function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColo
                 >
                   <option value="">Select pickup rider...</option>
                   {riders.map(rider => (
-                    <option key={rider.id} value={rider.id}>
-                      {rider.firstName} {rider.lastName} ({rider.phone})
+                    <option key={rider.id} value={rider.id} disabled={!rider.isAvailable}>
+                      {rider.firstName} {rider.lastName} ({rider.phone}){!rider.isAvailable ? ' - Unavailable' : ''}
                     </option>
                   ))}
                 </select>
@@ -742,8 +756,8 @@ function OrderCard({ order, riders, onStatusUpdate, onRiderUpdate, getStatusColo
                 >
                   <option value="">Select delivery rider...</option>
                   {riders.map(rider => (
-                    <option key={rider.id} value={rider.id}>
-                      {rider.firstName} {rider.lastName} ({rider.phone})
+                    <option key={rider.id} value={rider.id} disabled={!rider.isAvailable}>
+                      {rider.firstName} {rider.lastName} ({rider.phone}){!rider.isAvailable ? ' - Unavailable' : ''}
                     </option>
                   ))}
                 </select>

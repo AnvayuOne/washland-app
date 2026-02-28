@@ -1,67 +1,70 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest) {
+function extractTransactionStatus(metadata: unknown) {
+  if (metadata && typeof metadata === 'object' && 'status' in (metadata as Record<string, unknown>)) {
+    const value = (metadata as Record<string, unknown>).status
+    if (typeof value === 'string') {
+      return value
+    }
+  }
+  return 'COMPLETED'
+}
+
+export async function GET() {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireRole(['CUSTOMER'])
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // TODO: Implement when Prisma client is regenerated with wallet models
-    // For now, return mock data structure
-    const mockWalletData = {
-      balance: 850.00,
-      pendingRefunds: 150.00,
-      totalSpent: 2500.00,
-      transactions: [
-        {
-          id: '1',
-          type: 'CREDIT',
-          amount: 500,
-          description: 'Money added via UPI',
-          status: 'COMPLETED',
-          createdAt: new Date().toISOString()
+    const userId = authResult.id
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
         },
-        {
-          id: '2',
-          type: 'DEBIT',
-          amount: 250,
-          description: 'Order payment - ORD-001',
-          orderId: 'ORD-001',
-          status: 'COMPLETED',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          type: 'REFUND',
-          amount: 150,
-          description: 'Order cancellation refund - ORD-002',
-          orderId: 'ORD-002',
-          status: 'PENDING',
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '4',
-          type: 'CREDIT',
-          amount: 300,
-          description: 'Cashback from referral',
-          status: 'COMPLETED',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ]
-    }
+      },
+    })
+
+    const walletBalance = wallet ? Number(wallet.balance) : 0
+
+    const transactions = (wallet?.transactions ?? []).map((transaction) => ({
+      id: transaction.id,
+      type: transaction.type,
+      amount: Number(transaction.amount),
+      source: transaction.source ?? 'N/A',
+      status: extractTransactionStatus(transaction.metadata),
+      metadata: transaction.metadata,
+      createdAt: transaction.createdAt,
+    }))
+
+    const pendingTopups = transactions
+      .filter((transaction) => transaction.source === 'WALLET_TOPUP_PENDING' && transaction.status === 'PENDING')
+      .reduce((sum, transaction) => sum + transaction.amount, 0)
+
+    const totalSpent = transactions
+      .filter((transaction) => transaction.type === 'DEBIT')
+      .reduce((sum, transaction) => sum + transaction.amount, 0)
 
     return NextResponse.json({
       success: true,
-      wallet: mockWalletData,
-      message: 'Wallet data retrieved successfully (mock data - requires Prisma client regeneration)'
+      wallet: {
+        walletBalance,
+        pendingTopups,
+        totalSpent,
+        transactions,
+      },
     })
-
   } catch (error) {
-    console.error('Error fetching wallet data:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('customer wallet GET error', error)
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch wallet data' },
+      { status: 500 }
+    )
   }
 }

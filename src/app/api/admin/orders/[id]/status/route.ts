@@ -4,6 +4,7 @@ import { requireAdminHybrid } from "@/lib/hybrid-auth"
 import { logActivity } from "@/lib/activity-logger"
 import { processOrderCompletionRewards } from "@/lib/loyalty"
 import { recomputeOrderTotals } from "@/lib/order-totals"
+import { getScope, scopeWhereForOrders } from "@/lib/scope"
 import {
   canTransition,
   isOrderStatus,
@@ -20,6 +21,7 @@ export async function POST(
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { id } = await params
     const body = await request.json()
@@ -32,8 +34,10 @@ export async function POST(
       return NextResponse.json({ error: "Invalid status value" }, { status: 400 })
     }
 
-    const existingOrder = await prisma.order.findUnique({
-      where: { id },
+    const existingOrder = await prisma.order.findFirst({
+      where: {
+        AND: [{ id }, scopeWhereForOrders(scope)],
+      },
       include: {
         user: {
           select: { id: true, firstName: true, lastName: true },

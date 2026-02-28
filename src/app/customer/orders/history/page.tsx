@@ -68,9 +68,6 @@ export default function OrderHistoryPage() {
       const orderPromises = statuses.map(status =>
         fetch(`/api/customer/orders?status=${status}&limit=50`, {
           headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail || '',
-            'x-user-role': userRole
           }
         }).then(res => res.ok ? res.json() : { orders: [] })
       )
@@ -118,9 +115,6 @@ export default function OrderHistoryPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': localStorage.getItem('userId') || '',
-          'x-user-email': localStorage.getItem('userEmail') || '',
-          'x-user-role': localStorage.getItem('userRole') || ''
         },
         body: JSON.stringify({ orderId })
       })

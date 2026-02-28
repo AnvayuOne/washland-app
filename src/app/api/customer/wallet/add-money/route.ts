@@ -1,46 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
+import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireRole(['CUSTOMER'])
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const body = await request.json()
-    const { amount } = body
+    const amount = Number(body?.amount)
 
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
-      return NextResponse.json({ error: 'Valid amount is required' }, { status: 400 })
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ success: false, error: 'Valid amount is required' }, { status: 400 })
     }
 
     if (amount < 10) {
-      return NextResponse.json({ error: 'Minimum amount is ₹10' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Minimum amount is 10' }, { status: 400 })
     }
 
     if (amount > 10000) {
-      return NextResponse.json({ error: 'Maximum amount is ₹10,000' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Maximum amount is 10,000' }, { status: 400 })
     }
 
-    // TODO: Implement when Prisma client is regenerated with wallet models
-    // This would include:
-    // 1. Create payment gateway integration (Razorpay, PayU, etc.)
-    // 2. Generate payment order
-    // 3. Update wallet balance on successful payment
-    // 4. Create transaction record
-    // 5. Handle payment webhooks
+    const decimalAmount = new Prisma.Decimal(Number(amount.toFixed(2)))
+    const userId = authResult.id
+
+    const wallet = await prisma.wallet.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        balance: new Prisma.Decimal(0),
+      },
+    })
+
+    const topupTransaction = await prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        type: 'CREDIT',
+        amount: decimalAmount,
+        source: 'WALLET_TOPUP_PENDING',
+          metadata: {
+            status: 'PENDING',
+            mode: 'TOPUP_REQUEST',
+            requestedAmount: decimalAmount.toNumber(),
+            note: 'Payment integration pending',
+          },
+        },
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'Add money feature requires Prisma client regeneration with wallet models and payment gateway integration',
-      note: 'This endpoint will process payments once wallet models and payment service are configured'
+      topup: {
+        topupId: topupTransaction.id,
+        status: 'PENDING',
+        amount: topupTransaction.amount.toNumber(),
+      },
+      message: 'Top-up request created. Payment integration pending.',
     })
-
   } catch (error) {
-    console.error('Error adding money to wallet:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('customer wallet add-money POST error', error)
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create wallet top-up request' },
+      { status: 500 }
+    )
   }
 }

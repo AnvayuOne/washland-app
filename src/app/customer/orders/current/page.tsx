@@ -77,9 +77,6 @@ export default function CurrentOrdersPage() {
       const orderPromises = statuses.map(status =>
         fetch(`/api/customer/orders?status=${status}&limit=50`, {
           headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail || '',
-            'x-user-role': userRole
           }
         }).then(res => res.ok ? res.json() : { orders: [] })
       )

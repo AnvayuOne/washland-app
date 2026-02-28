@@ -3,9 +3,11 @@ import { NextResponse } from "next/server"
 
 // Intended protection:
 // - Public: /auth/* and role login pages (/admin/login, /washland/login, /franchise/login, /rider/login)
-// - Protected: all other /admin/*, /washland/*, /franchise/*, /rider/*, /customer/*, and /api/admin/*
+// - Protected: all other /admin/*, /washland/*, /franchise/*, /rider/*, /customer/*,
+//   and private API namespaces (/api/admin/*, /api/customer/*, /api/rider/*, /api/franchise/*)
 const PUBLIC_ROUTE_PREFIXES = ["/auth/"]
 const PUBLIC_EXACT_ROUTES = [
+  "/denied",
   "/admin/login",
   "/washland/login",
   "/franchise/login",
@@ -45,6 +47,7 @@ export default withAuth(
     const token = req.nextauth.token
     const role = token?.role as string | undefined
     const { pathname } = req.nextUrl
+    const isApiRoute = pathname.startsWith("/api/")
 
     // Keep login/auth routes public, but send already-authenticated users to their own dashboard.
     if (isPublicRoute(pathname)) {
@@ -59,10 +62,16 @@ export default withAuth(
 
     const enforceRole = (allowedRoles: string[]) => {
       if (!role) {
+        if (isApiRoute) {
+          return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+        }
         return NextResponse.redirect(new URL("/auth/signin", req.url))
       }
       if (!allowedRoles.includes(role)) {
-        return redirectToRoleDashboard(req, role)
+        if (isApiRoute) {
+          return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+        }
+        return NextResponse.redirect(new URL("/denied", req.url))
       }
       return NextResponse.next()
     }
@@ -72,23 +81,35 @@ export default withAuth(
     }
 
     if (pathname.startsWith("/franchise")) {
-      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN"])
+      return enforceRole(["FRANCHISE_ADMIN"])
     }
 
     if (pathname.startsWith("/admin")) {
-      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"])
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN"])
     }
 
     if (pathname.startsWith("/rider")) {
-      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN", "RIDER"])
+      return enforceRole(["RIDER"])
     }
 
     if (pathname.startsWith("/customer")) {
-      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN", "CUSTOMER"])
+      return enforceRole(["CUSTOMER"])
     }
 
     if (pathname.startsWith("/api/admin")) {
-      return enforceRole(["SUPER_ADMIN", "FRANCHISE_ADMIN", "STORE_ADMIN"])
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN"])
+    }
+
+    if (pathname.startsWith("/api/customer")) {
+      return enforceRole(["CUSTOMER"])
+    }
+
+    if (pathname.startsWith("/api/rider")) {
+      return enforceRole(["RIDER"])
+    }
+
+    if (pathname.startsWith("/api/franchise")) {
+      return enforceRole(["FRANCHISE_ADMIN"])
     }
 
     return NextResponse.next()
@@ -113,6 +134,9 @@ export const config = {
     "/franchise/:path*",
     "/rider/:path*",
     "/customer/:path*",
-    "/api/admin/:path*"
+    "/api/admin/:path*",
+    "/api/customer/:path*",
+    "/api/rider/:path*",
+    "/api/franchise/:path*"
   ]
 }

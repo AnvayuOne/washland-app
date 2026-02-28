@@ -63,6 +63,16 @@ interface OrderDetail {
     lastName: string
     phone?: string | null
   } | null
+  latestRiderUpdate?: {
+    id: string
+    description: string
+    createdAt: string
+    user?: {
+      id: string
+      firstName: string
+      lastName: string
+    } | null
+  } | null
 }
 
 export default function StoreAdminOrderDetailPage() {
@@ -95,6 +105,14 @@ export default function StoreAdminOrderDetailPage() {
     setStoreName(store || "")
     if (name) setUserName(name)
     void fetchOrder(email || "", role || "")
+
+    const pollingInterval = window.setInterval(() => {
+      void fetchOrder(email || "", role || "")
+    }, 15000)
+
+    return () => {
+      window.clearInterval(pollingInterval)
+    }
   }, [params?.id, router])
 
   async function fetchOrder(email: string, role: string) {
@@ -103,8 +121,6 @@ export default function StoreAdminOrderDetailPage() {
       setLoading(true)
       const response = await fetch(`/api/admin/orders/${params.id}`, {
         headers: {
-          "x-user-email": email,
-          "x-user-role": role,
         },
       })
       const payload = await response.json()
@@ -127,8 +143,6 @@ export default function StoreAdminOrderDetailPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-email": userEmail,
-          "x-user-role": userRole,
         },
         body: JSON.stringify({
           status: nextStatus,
@@ -263,6 +277,10 @@ export default function StoreAdminOrderDetailPage() {
               <SummaryRow
                 label="Delivery Rider"
                 value={order.deliveryRider ? `${order.deliveryRider.firstName} ${order.deliveryRider.lastName}` : "Not assigned"}
+              />
+              <SummaryRow
+                label="Latest Rider Update"
+                value={order.latestRiderUpdate ? `${order.latestRiderUpdate.description} (${new Date(order.latestRiderUpdate.createdAt).toLocaleString()})` : "No rider updates yet"}
               />
             </Panel>
 

@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity-logger'
 import { computeOrderItems, computeOrderTotals, normalizeCurrencyCode } from '@/lib/order-totals'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-    
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const body = await request.json()
     const { orderId } = body
@@ -21,10 +20,10 @@ export async function POST(request: NextRequest) {
 
     try {
       // Fetch the original order with items
-      const originalOrder = await prisma.order.findUnique({
+      const originalOrder = await prisma.order.findFirst({
         where: { 
           id: orderId,
-          userId // Ensure user owns this order
+          userId: scope.userId // Ensure user owns this order
         },
         include: {
           items: {
@@ -58,7 +57,7 @@ export async function POST(request: NextRequest) {
       const newOrder = await prisma.order.create({
         data: {
           orderNumber,
-          userId,
+          userId: scope.userId,
           storeId: originalOrder.storeId,
           addressId: originalOrder.addressId,
           currency: totals.currency,
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
       await logActivity({
         type: 'ORDER_PLACED',
         description: `Reorder ${newOrder.orderNumber} placed for ₹${newOrder.totalAmount}`,
-        userId: userId,
+        userId: scope.userId,
         metadata: {
           orderId: newOrder.id,
           orderNumber: newOrder.orderNumber,

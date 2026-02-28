@@ -4,7 +4,7 @@ import requireAdminHybrid from '../../../../../src/lib/hybrid-auth'
 
 export async function GET(req: Request) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const { searchParams } = new URL(req.url)

@@ -37,6 +37,7 @@ interface Rider {
   lastName: string
   email: string
   phone: string
+  isAvailable: boolean
 }
 
 interface Assignment {
@@ -104,12 +105,12 @@ export default function RiderAssignmentPage() {
     if (filterStatus !== 'all') {
       if (filterStatus === 'needs-pickup') {
         filtered = filtered.filter(order =>
-          (order.status === 'ready-for-pickup' || order.status === 'confirmed') &&
+          (order.status === 'READY_FOR_PICKUP' || order.status === 'CONFIRMED') &&
           !order.pickupRider
         )
       } else if (filterStatus === 'needs-delivery') {
         filtered = filtered.filter(order =>
-          order.status === 'ready-for-pickup' &&
+          order.status === 'READY_FOR_PICKUP' &&
           !order.deliveryRider
         )
       } else if (filterStatus === 'assigned') {
@@ -124,10 +125,8 @@ export default function RiderAssignmentPage() {
 
   const fetchOrders = async (storeId: string) => {
     try {
-      const response = await fetch(`/api/admin/orders?storeId=${storeId}&status=confirmed&status=ready-for-pickup&status=in-progress`, {
+      const response = await fetch(`/api/admin/orders?storeId=${storeId}&status=CONFIRMED,READY_FOR_PICKUP,IN_PROGRESS`, {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
 
@@ -158,8 +157,6 @@ export default function RiderAssignmentPage() {
     try {
       const response = await fetch(`/api/admin/riders?storeId=${storeId}`, {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
 
@@ -209,8 +206,6 @@ export default function RiderAssignmentPage() {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-user-email': userEmail,
-              'x-user-role': userRole
             },
             body: JSON.stringify({
               [assignment.riderType === 'pickup' ? 'pickupRiderId' : 'deliveryRiderId']: assignment.riderId
@@ -451,8 +446,8 @@ function OrderAssignmentCard({
     return assignments.find(a => a.orderId === order.id && a.riderType === riderType)?.riderId || ''
   }
 
-  const needsPickup = (order.status === 'ready-for-pickup' || order.status === 'confirmed') && !order.pickupRider
-  const needsDelivery = order.status === 'ready-for-pickup' && !order.deliveryRider
+  const needsPickup = (order.status === 'READY_FOR_PICKUP' || order.status === 'CONFIRMED') && !order.pickupRider
+  const needsDelivery = order.status === 'READY_FOR_PICKUP' && !order.deliveryRider
 
   return (
     <div style={{
@@ -547,8 +542,8 @@ function OrderAssignmentCard({
               {order.pickupRider ? getRiderName(order.pickupRider) : 'Select pickup rider...'}
             </option>
             {riders.map(rider => (
-              <option key={rider.id} value={rider.id}>
-                {rider.firstName} {rider.lastName} ({rider.phone})
+              <option key={rider.id} value={rider.id} disabled={!rider.isAvailable}>
+                {rider.firstName} {rider.lastName} ({rider.phone}){!rider.isAvailable ? ' - Unavailable' : ''}
               </option>
             ))}
           </select>
@@ -591,8 +586,8 @@ function OrderAssignmentCard({
               {order.deliveryRider ? getRiderName(order.deliveryRider) : 'Select delivery rider...'}
             </option>
             {riders.map(rider => (
-              <option key={rider.id} value={rider.id}>
-                {rider.firstName} {rider.lastName} ({rider.phone})
+              <option key={rider.id} value={rider.id} disabled={!rider.isAvailable}>
+                {rider.firstName} {rider.lastName} ({rider.phone}){!rider.isAvailable ? ' - Unavailable' : ''}
               </option>
             ))}
           </select>

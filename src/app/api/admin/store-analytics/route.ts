@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminHybrid } from '@/lib/hybrid-auth'
 import { prisma } from '@/lib/prisma'
+import { assertStoreInScope, getScope } from '@/lib/scope'
 
 // GET /api/admin/store-analytics - Get analytics for a specific store
 export async function GET(request: NextRequest) {
@@ -9,6 +10,7 @@ export async function GET(request: NextRequest) {
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { searchParams } = new URL(request.url)
     const storeId = searchParams.get('storeId')
@@ -19,6 +21,7 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+    await assertStoreInScope(storeId, scope)
 
     try {
       // Get current date for calculations
@@ -33,7 +36,7 @@ export async function GET(request: NextRequest) {
         readyForDelivery,
         totalCustomers,
         monthlyRevenue,
-        activeRiders
+        activeRiderAssignments
       ] = await Promise.all([
         // Today's orders
         prisma.order.count({
@@ -85,10 +88,25 @@ export async function GET(request: NextRequest) {
           }
         }).then(result => result._sum.totalAmount || 0),
 
-        // Active riders - this would need a separate Rider model
-        // For now, we'll use a placeholder
-        Promise.resolve(Math.floor(Math.random() * 8) + 2)
+        prisma.order.findMany({
+          where: {
+            storeId: storeId,
+            status: {
+              in: ['CONFIRMED', 'IN_PROGRESS', 'READY_FOR_PICKUP']
+            }
+          },
+          select: {
+            pickupRiderId: true,
+            deliveryRiderId: true
+          }
+        })
       ])
+
+      const riderIds = new Set<string>()
+      for (const order of activeRiderAssignments) {
+        if (order.pickupRiderId) riderIds.add(order.pickupRiderId)
+        if (order.deliveryRiderId) riderIds.add(order.deliveryRiderId)
+      }
 
       const stats = {
         todaysOrders,
@@ -96,7 +114,7 @@ export async function GET(request: NextRequest) {
         readyForDelivery,
         totalCustomers,
         monthlyRevenue: Number(monthlyRevenue),
-        activeRiders
+        activeRiders: riderIds.size
       }
 
       return NextResponse.json({

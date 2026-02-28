@@ -33,7 +33,7 @@ export default function NewUserPage() {
     lastName: '',
     email: '',
     phone: '',
-    role: 'CUSTOMER' as 'CUSTOMER' | 'STORE_ADMIN' | 'FRANCHISE_ADMIN' | 'SUPER_ADMIN',
+    role: 'CUSTOMER' as 'CUSTOMER' | 'STORE_ADMIN' | 'FRANCHISE_ADMIN' | 'SUPER_ADMIN' | 'RIDER',
     franchiseId: '',
     storeId: ''
   })
@@ -350,6 +350,7 @@ export default function NewUserPage() {
                   <option value="STORE_ADMIN">Store Admin</option>
                   <option value="FRANCHISE_ADMIN">Franchise Admin</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
+                  <option value="RIDER">Rider</option>
                 </select>
               </div>
 

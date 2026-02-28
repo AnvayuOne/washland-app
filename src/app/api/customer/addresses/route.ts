@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     // Fetch customer addresses
     const addresses = await prisma.address.findMany({
-      where: { userId: userId },
+      where: { userId: scope.userId },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' }
@@ -32,12 +31,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const body = await request.json()
     const { type, address, landmark, city, state, pincode, isDefault } = body
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (isDefault) {
       await prisma.address.updateMany({
         where: {
-          userId: userId,
+          userId: scope.userId,
           isDefault: true
         },
         data: { isDefault: false }
@@ -71,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Create new address
     const newAddress = await prisma.address.create({
       data: {
-        userId: userId,
+        userId: scope.userId,
         title: type as 'HOME' | 'WORK' | 'OTHER',
         street: address.trim(),
         city: city.trim(),

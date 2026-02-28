@@ -5,6 +5,7 @@ import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
 import { logActivity } from '@/lib/activity-logger'
 import { isOrderStatus } from '@/lib/orderStatus'
 import { computeOrderItems, computeOrderTotals, normalizeCurrencyCode } from '@/lib/order-totals'
+import { assertStoreInScope, getScope, scopeWhereForOrders } from '@/lib/scope'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -24,11 +26,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
 
     if (lookup === 'customers') {
+      const customerWhere: Prisma.UserWhereInput = {
+        role: 'CUSTOMER',
+        isActive: true,
+      }
+
+      if (scope.role === 'STORE_ADMIN') {
+        customerWhere.orders = {
+          some: scopeWhereForOrders(scope),
+        }
+      }
+
       const customers = await prisma.user.findMany({
-        where: {
-          role: 'CUSTOMER',
-          isActive: true
-        },
+        where: customerWhere,
         select: {
           id: true,
           firstName: true,
@@ -62,7 +72,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const whereClause: Prisma.OrderWhereInput = {}
+    const whereClause: Prisma.OrderWhereInput = {
+      AND: [scopeWhereForOrders(scope)],
+    }
+    const andFilters = whereClause.AND as Prisma.OrderWhereInput[]
 
     if (status && status !== 'all') {
       const statuses = status
@@ -71,28 +84,35 @@ export async function GET(request: NextRequest) {
         .filter((value) => isOrderStatus(value))
 
       if (statuses.length === 1) {
-        whereClause.status = statuses[0] as OrderStatus
+        andFilters.push({ status: statuses[0] as OrderStatus })
       } else if (statuses.length > 1) {
-        whereClause.status = { in: statuses as OrderStatus[] }
+        andFilters.push({ status: { in: statuses as OrderStatus[] } })
       }
     }
     
     if (paymentStatus && paymentStatus !== 'all') {
-      whereClause.paymentStatus = paymentStatus as PaymentStatus
+      andFilters.push({ paymentStatus: paymentStatus as PaymentStatus })
     }
     
     if (storeId) {
-      whereClause.storeId = storeId
+      await assertStoreInScope(storeId, scope)
+      andFilters.push({ storeId })
     }
     
     if (franchiseId) {
-      whereClause.store = {
-        franchiseId: franchiseId
+      if (scope.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Franchise filter not allowed for this role' }, { status: 403 })
       }
+
+      andFilters.push({
+        store: {
+          franchiseId: franchiseId
+        }
+      })
     }
     
     if (userId) {
-      whereClause.userId = userId
+      andFilters.push({ userId })
     }
 
     const skip = (page - 1) * limit
@@ -152,10 +172,54 @@ export async function GET(request: NextRequest) {
         }),
         prisma.order.count({ where: whereClause })
       ])
+
+      const latestRiderUpdates = await Promise.all(
+        orders.map(async (order) => {
+          const latestRiderUpdate = await prisma.activity.findFirst({
+            where: {
+              type: 'RIDER_STATUS_UPDATE',
+              metadata: {
+                path: ['orderId'],
+                equals: order.id
+              }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            },
+            select: {
+              id: true,
+              description: true,
+              metadata: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          })
+
+          return {
+            orderId: order.id,
+            latestRiderUpdate
+          }
+        })
+      )
+
+      const latestRiderUpdateByOrderId = new Map(
+        latestRiderUpdates.map((entry) => [entry.orderId, entry.latestRiderUpdate ?? null])
+      )
+
+      const ordersWithRiderUpdates = orders.map((order) => ({
+        ...order,
+        latestRiderUpdate: latestRiderUpdateByOrderId.get(order.id) ?? null
+      }))
       
       return NextResponse.json({
         success: true,
-        orders,
+        orders: ordersWithRiderUpdates,
         pagination: {
           total: totalCount,
           page,
@@ -182,6 +246,7 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const body = await request.json()
     const { 
@@ -207,6 +272,7 @@ export async function POST(request: NextRequest) {
       if (!store) {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
       }
+      await assertStoreInScope(storeId, scope)
 
       // Validate selected customer exists
       const user = await prisma.user.findUnique({

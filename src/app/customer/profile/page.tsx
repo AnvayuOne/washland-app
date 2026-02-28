@@ -53,9 +53,6 @@ export default function CustomerProfilePage() {
 
       const response = await fetch('/api/customer/profile', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 
@@ -89,9 +86,6 @@ export default function CustomerProfilePage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         },
         body: JSON.stringify({
           firstName,
@@ -140,9 +134,6 @@ export default function CustomerProfilePage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         },
         body: JSON.stringify({
           currentPassword,

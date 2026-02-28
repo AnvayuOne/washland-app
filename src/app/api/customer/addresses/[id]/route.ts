@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const { id: addressId } = await params
     const body = await request.json()
@@ -36,7 +35,7 @@ export async function PUT(
     const existingAddress = await prisma.address.findFirst({
       where: { 
         id: addressId,
-        userId: userId
+        userId: scope.userId
       }
     })
 
@@ -48,7 +47,7 @@ export async function PUT(
     if (isDefault && !existingAddress.isDefault) {
       await prisma.address.updateMany({
         where: { 
-          userId: userId,
+          userId: scope.userId,
           isDefault: true 
         },
         data: { isDefault: false }
@@ -85,12 +84,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const { id: addressId } = await params
 
@@ -98,7 +94,7 @@ export async function DELETE(
     const existingAddress = await prisma.address.findFirst({
       where: { 
         id: addressId,
-        userId: userId 
+        userId: scope.userId 
       }
     })
 
@@ -125,7 +121,7 @@ export async function DELETE(
     // If deleted address was default, make another address default if available
     if (existingAddress.isDefault) {
       const firstAddress = await prisma.address.findFirst({
-        where: { userId: userId },
+        where: { userId: scope.userId },
         orderBy: { createdAt: 'asc' }
       })
 

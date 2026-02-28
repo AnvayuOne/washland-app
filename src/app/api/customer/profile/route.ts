@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     // Fetch customer profile
     const customer = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: scope.userId },
       select: {
         id: true,
         email: true,
@@ -40,12 +39,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const body = await request.json()
     const { firstName, lastName, phone } = body
@@ -62,7 +58,7 @@ export async function PUT(request: NextRequest) {
 
     // Update customer profile
     const updatedCustomer = await prisma.user.update({
-      where: { id: userId },
+      where: { id: scope.userId },
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),

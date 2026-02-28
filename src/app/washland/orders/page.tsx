@@ -84,8 +84,6 @@ export default function WashlandOrdersPage() {
       const roleHeader = userRole === "washland" ? "SUPER_ADMIN" : userRole
       const response = await fetch(`/api/admin/orders${query}`, {
         headers: {
-          "x-user-email": userEmail,
-          "x-user-role": roleHeader,
         },
       })
       const payload = await response.json()
@@ -108,8 +106,6 @@ export default function WashlandOrdersPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-email": userEmail,
-          "x-user-role": roleHeader,
         },
         body: JSON.stringify({ status: to, force: true }),
       })

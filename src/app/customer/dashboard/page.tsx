@@ -61,9 +61,6 @@ export default function CustomerDashboardPage() {
       // Fetch dashboard stats
       const statsResponse = await fetch('/api/customer/dashboard-stats', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 
@@ -75,9 +72,6 @@ export default function CustomerDashboardPage() {
       // Fetch recent orders
       const ordersResponse = await fetch('/api/customer/recent-orders', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 

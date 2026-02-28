@@ -110,8 +110,6 @@ export default function NewOrderPage() {
     try {
       const response = await fetch('/api/admin/services?isActive=true', {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
 
@@ -132,8 +130,6 @@ export default function NewOrderPage() {
     try {
       const response = await fetch('/api/admin/orders?lookup=customers', {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
 
@@ -254,8 +250,6 @@ export default function NewOrderPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         },
         body: JSON.stringify(orderData)
       })

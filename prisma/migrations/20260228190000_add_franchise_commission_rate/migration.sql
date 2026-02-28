@@ -1,0 +1,2 @@
+ALTER TABLE "franchises"
+ADD COLUMN IF NOT EXISTS "commission_rate" DECIMAL(5,4) NOT NULL DEFAULT 0.10;

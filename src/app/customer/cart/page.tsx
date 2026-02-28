@@ -82,9 +82,6 @@ export default function CustomerCartPage() {
         fetch("/api/public/stores"),
         fetch("/api/customer/addresses", {
           headers: {
-            "x-user-id": userId,
-            "x-user-email": userEmail,
-            "x-user-role": userRole,
           },
         }),
       ])

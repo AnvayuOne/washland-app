@@ -1,249 +1,185 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react'
+import DashboardLayout from '@/components/DashboardLayout'
 
-interface LoyaltyPoint {
-    id: string;
-    points: number;
-    source: string;
-    user: {
-        id: string;
-        firstName: string;
-        lastName: string;
-        fullName: string;
-        email: string;
-    };
-    expiresAt: string | null;
-    createdAt: string;
+interface LoyaltyUserSummary {
+  userId: string
+  firstName: string
+  lastName: string
+  fullName: string
+  email: string
+  pointsBalance: number
+  lifetimePointsEarned: number
+  lifetimePointsRedeemed: number
+  lastActivityAt: string
+  lastSource: string
+}
+
+interface LoyaltyTransaction {
+  id: string
+  userId: string
+  firstName: string
+  lastName: string
+  fullName: string
+  email: string
+  points: number
+  source: string
+  createdAt: string
+  expiresAt: string | null
 }
 
 export default function LoyaltyPage() {
-    const router = useRouter();
-    const [transactions, setTransactions] = useState<LoyaltyPoint[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        totalPoints: 0,
-        totalTransactions: 0
-    });
+  const [users, setUsers] = useState<LoyaltyUserSummary[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<LoyaltyTransaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-    useEffect(() => {
-        fetchLoyaltyPoints();
-    }, []);
+  useEffect(() => {
+    void fetchLoyaltyReport()
+  }, [])
 
-    const fetchLoyaltyPoints = async () => {
-        try {
-            const res = await fetch('/api/admin/loyalty');
-            const data = await res.json();
-            if (data.success) {
-                setTransactions(data.points);
+  async function fetchLoyaltyReport() {
+    try {
+      setLoading(true)
+      setError('')
 
-                // Calculate stats
-                const totalTransactions = data.points.length;
-                const totalPoints = data.points.reduce((sum: number, p: LoyaltyPoint) => sum + p.points, 0);
-                setStats({ totalPoints, totalTransactions });
-            }
-        } catch (error) {
-            console.error('Error fetching loyalty points:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+      const res = await fetch('/api/admin/loyalty')
+      const data = await res.json()
 
-    return (
-        <DashboardLayout userRole="SUPER_ADMIN">
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-                <div style={{ marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                        <div>
-                            <h1 style={{
-                                fontSize: '2rem',
-                                fontWeight: '700',
-                                color: '#111827',
-                                marginBottom: '0.5rem'
-                            }}>
-                                Loyalty Points
-                            </h1>
-                            <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-                                Track customer loyalty points history
-                            </p>
-                        </div>
-                    </div>
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to load loyalty report')
+      }
 
-                    {/* Stats Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                        <StatsCard
-                            title="Total Points Issued"
-                            value={stats.totalPoints.toLocaleString()}
-                            icon={<StarIcon />}
-                            color="#3b82f6"
-                        />
-                        <StatsCard
-                            title="Total Transactions"
-                            value={stats.totalTransactions.toString()}
-                            icon={<ListIcon />}
-                            color="#10b981"
-                        />
-                    </div>
-                </div>
+      setUsers(Array.isArray(data.users) ? data.users : [])
+      setRecentTransactions(Array.isArray(data.recentTransactions) ? data.recentTransactions : [])
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : 'Failed to load loyalty report')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-                {/* Transactions List */}
-                <div style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                    overflow: 'hidden'
-                }}>
-                    <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827' }}>
-                            Points History ({stats.totalTransactions})
-                        </h3>
-                    </div>
+  const stats = useMemo(() => {
+    const totalCustomers = users.length
+    const totalPointsBalance = users.reduce((sum, user) => sum + user.pointsBalance, 0)
+    const totalPointsEarned = users.reduce((sum, user) => sum + user.lifetimePointsEarned, 0)
+    const totalPointsRedeemed = users.reduce((sum, user) => sum + user.lifetimePointsRedeemed, 0)
 
-                    {loading ? (
-                        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                            Loading loyalty history...
-                        </div>
-                    ) : transactions.length === 0 ? (
-                        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                            No loyalty history found
-                        </div>
-                    ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead style={{ backgroundColor: '#f9fafb' }}>
-                                    <tr>
-                                        <th style={tableHeaderStyle}>User</th>
-                                        <th style={tableHeaderStyle}>Points</th>
-                                        <th style={tableHeaderStyle}>Source</th>
-                                        <th style={tableHeaderStyle}>Expires</th>
-                                        <th style={tableHeaderStyle}>Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions.map((t) => (
-                                        <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                            <td style={tableCellStyle}>
-                                                <div>
-                                                    <div style={{ fontWeight: '500', color: '#111827' }}>{t.user.fullName || 'Unknown User'}</div>
-                                                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t.user.email}</div>
-                                                </div>
-                                            </td>
-                                            <td style={tableCellStyle}>
-                                                <span style={{ fontWeight: '700', color: '#2563eb' }}>
-                                                    +{t.points}
-                                                </span>
-                                            </td>
-                                            <td style={tableCellStyle}>
-                                                <span style={{
-                                                    display: 'inline-block',
-                                                    padding: '0.25rem 0.75rem',
-                                                    borderRadius: '9999px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '500',
-                                                    backgroundColor: '#f3f4f6',
-                                                    color: '#374151'
-                                                }}>
-                                                    {t.source}
-                                                </span>
-                                            </td>
-                                            <td style={tableCellStyle}>
-                                                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                                                    {t.expiresAt ? new Date(t.expiresAt).toLocaleDateString() : 'Never'}
-                                                </div>
-                                            </td>
-                                            <td style={tableCellStyle}>
-                                                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                                                    {new Date(t.createdAt).toLocaleDateString()}
-                                                </div>
-                                                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                                                    {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </DashboardLayout>
-    );
-}
+    return {
+      totalCustomers,
+      totalPointsBalance,
+      totalPointsEarned,
+      totalPointsRedeemed,
+    }
+  }, [users])
 
-// Helper Components & Styles
-interface StatsCardProps {
-    title: string
-    value: string
-    icon: React.ReactNode
-    color: string
-}
-
-function StatsCard({ title, value, icon, color }: StatsCardProps) {
-    return (
-        <div style={{
-            backgroundColor: 'white',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem'
-        }}>
-            <div style={{
-                padding: '0.75rem',
-                borderRadius: '8px',
-                backgroundColor: `${color}1a`,
-                color: color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}>
-                {icon}
-            </div>
-            <div>
-                <div style={{ fontSize: '2rem', fontWeight: '700', color: '#111827' }}>
-                    {value}
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    {title}
-                </div>
-            </div>
+  return (
+    <DashboardLayout userRole="SUPER_ADMIN">
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem' }}>
+            Loyalty Report
+          </h1>
+          <p style={{ color: '#6b7280' }}>Per-customer balance and recent loyalty activity</p>
         </div>
-    )
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <StatsCard title="Customers" value={stats.totalCustomers.toLocaleString()} color="#2563eb" />
+          <StatsCard title="Points Balance" value={stats.totalPointsBalance.toLocaleString()} color="#16a34a" />
+          <StatsCard title="Lifetime Earned" value={stats.totalPointsEarned.toLocaleString()} color="#7c3aed" />
+          <StatsCard title="Lifetime Redeemed" value={stats.totalPointsRedeemed.toLocaleString()} color="#ea580c" />
+        </div>
+
+        {loading ? (
+          <Panel title="Loading">Loading loyalty report...</Panel>
+        ) : error ? (
+          <Panel title="Error">{error}</Panel>
+        ) : (
+          <>
+            <Panel title={`Customer Balances (${users.length})`}>
+              {users.length === 0 ? (
+                <div style={{ color: '#6b7280' }}>No loyalty activity found.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <Th>Customer</Th>
+                        <Th>Email</Th>
+                        <Th>Balance</Th>
+                        <Th>Earned</Th>
+                        <Th>Redeemed</Th>
+                        <Th>Last Activity</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.userId} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <Td>{user.fullName || `${user.firstName} ${user.lastName}`}</Td>
+                          <Td>{user.email}</Td>
+                          <Td>{user.pointsBalance}</Td>
+                          <Td>{user.lifetimePointsEarned}</Td>
+                          <Td>{user.lifetimePointsRedeemed}</Td>
+                          <Td>{new Date(user.lastActivityAt).toLocaleString()} ({user.lastSource})</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
+
+            <Panel title="Recent Transactions">
+              {recentTransactions.length === 0 ? (
+                <div style={{ color: '#6b7280' }}>No transactions found.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '0.55rem' }}>
+                  {recentTransactions.map((transaction) => (
+                    <div key={transaction.id} style={{ background: '#f8fafc', borderRadius: 8, padding: '0.65rem' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>
+                        {transaction.fullName} ({transaction.email})
+                      </div>
+                      <div style={{ fontSize: '0.86rem', color: '#64748b' }}>
+                        {transaction.points > 0 ? '+' : ''}{transaction.points} points via {transaction.source}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        {new Date(transaction.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+          </>
+        )}
+      </div>
+    </DashboardLayout>
+  )
 }
 
-const tableHeaderStyle = {
-    padding: '0.75rem 1rem',
-    textAlign: 'left' as const,
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    color: '#6b7280',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em'
+function StatsCard({ title, value, color }: { title: string; value: string; color: string }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', padding: '1rem' }}>
+      <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{title}</div>
+      <div style={{ color, fontSize: '1.4rem', fontWeight: 700 }}>{value}</div>
+    </div>
+  )
 }
 
-const tableCellStyle = {
-    padding: '1rem',
-    fontSize: '0.875rem'
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', padding: '1rem', marginBottom: '1rem' }}>
+      <h2 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', color: '#0f172a' }}>{title}</h2>
+      {children}
+    </section>
+  )
 }
 
-// Icons
-const StarIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-)
+function Th({ children }: { children: React.ReactNode }) {
+  return <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b', fontSize: '0.78rem' }}>{children}</th>
+}
 
-const ListIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-)
+function Td({ children }: { children: React.ReactNode }) {
+  return <td style={{ padding: '0.55rem', color: '#0f172a', fontSize: '0.9rem' }}>{children}</td>
+}

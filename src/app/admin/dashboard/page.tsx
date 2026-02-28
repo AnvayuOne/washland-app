@@ -108,8 +108,6 @@ export default function AdminDashboard() {
     try {
       const response = await fetch(`/api/admin/store-analytics?storeId=${storeId}`, {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
       

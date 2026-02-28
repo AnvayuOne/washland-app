@@ -115,9 +115,6 @@ export default function CustomerOrderDetailPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": localStorage.getItem("userId") || "",
-          "x-user-email": localStorage.getItem("userEmail") || "",
-          "x-user-role": localStorage.getItem("userRole") || "",
         },
         body: JSON.stringify({ orderId: order.id }),
       })

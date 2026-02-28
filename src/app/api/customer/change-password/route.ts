@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '@/lib/password'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const body = await request.json()
     const { currentPassword, newPassword } = body
@@ -26,7 +25,7 @@ export async function PUT(request: NextRequest) {
 
     // Get customer with current password
     const customer = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: scope.userId },
       select: {
         id: true,
         password: true
@@ -48,7 +47,7 @@ export async function PUT(request: NextRequest) {
 
     // Update password
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: scope.userId },
       data: {
         password: hashedNewPassword
       }

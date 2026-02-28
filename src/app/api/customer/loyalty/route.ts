@@ -1,74 +1,70 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getActiveLoyaltyConfig } from '@/lib/loyaltyRules'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireRole(['CUSTOMER'])
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // TODO: Implement when Prisma client is regenerated with loyalty models
-    // For now, return mock data structure
-    const mockLoyaltyData = {
-      totalPoints: 1250,
-      availablePoints: 850,
-      usedPoints: 400,
-      pointsHistory: [
-        {
-          id: '1',
-          type: 'EARNED',
-          points: 150,
-          description: 'Order completion - ORD-001',
-          orderId: 'ORD-001',
-          createdAt: new Date().toISOString()
+    const userId = authResult.id
+
+    const [
+      pointsBalanceAgg,
+      lifetimeEarnedAgg,
+      lifetimeRedeemedAgg,
+      recentTransactions,
+      rules,
+    ] = await Promise.all([
+      prisma.loyaltyPoint.aggregate({
+        where: { userId },
+        _sum: { points: true },
+      }),
+      prisma.loyaltyPoint.aggregate({
+        where: { userId, points: { gt: 0 } },
+        _sum: { points: true },
+      }),
+      prisma.loyaltyPoint.aggregate({
+        where: { userId, points: { lt: 0 } },
+        _sum: { points: true },
+      }),
+      prisma.loyaltyPoint.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          points: true,
+          source: true,
+          expiresAt: true,
+          createdAt: true,
         },
-        {
-          id: '2',
-          type: 'REDEEMED',
-          points: 200,
-          description: 'Free wash coupon redeemed',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ],
-      redeemableRewards: [
-        {
-          id: 'reward1',
-          name: 'Free Basic Wash',
-          description: 'Get one basic wash service absolutely free',
-          pointsRequired: 500,
-          category: 'Service',
-          isActive: true
-        },
-        {
-          id: 'reward2',
-          name: '20% Discount Coupon',
-          description: 'Get 20% off on your next order',
-          pointsRequired: 300,
-          category: 'Discount',
-          isActive: true
-        },
-        {
-          id: 'reward3',
-          name: 'Premium Wash Package',
-          description: 'Upgrade to premium wash with starch and fold',
-          pointsRequired: 1000,
-          category: 'Service',
-          isActive: true
-        }
-      ]
-    }
+      }),
+      getActiveLoyaltyConfig(prisma),
+    ])
+
+    const pointsBalance = pointsBalanceAgg._sum.points ?? 0
+    const lifetimePointsEarned = lifetimeEarnedAgg._sum.points ?? 0
+    const lifetimePointsRedeemed = Math.abs(lifetimeRedeemedAgg._sum.points ?? 0)
 
     return NextResponse.json({
       success: true,
-      loyalty: mockLoyaltyData,
-      message: 'Loyalty data retrieved successfully (mock data - requires Prisma client regeneration)'
+      loyalty: {
+        pointsBalance,
+        lifetimePointsEarned,
+        lifetimePointsRedeemed,
+        rules,
+        recentTransactions,
+      },
     })
-
   } catch (error) {
-    console.error('Error fetching loyalty data:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('customer loyalty GET error', error)
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch loyalty data' },
+      { status: 500 }
+    )
   }
 }

@@ -11,7 +11,7 @@ interface User {
   lastName: string
   email: string
   phone?: string
-  role: 'CUSTOMER' | 'STORE_ADMIN' | 'FRANCHISE_ADMIN' | 'SUPER_ADMIN'
+  role: 'CUSTOMER' | 'STORE_ADMIN' | 'FRANCHISE_ADMIN' | 'SUPER_ADMIN' | 'RIDER'
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -166,7 +166,8 @@ export default function UserViewEditPage() {
       CUSTOMER: 'Customer',
       STORE_ADMIN: 'Store Admin',
       FRANCHISE_ADMIN: 'Franchise Admin',
-      SUPER_ADMIN: 'Super Admin'
+      SUPER_ADMIN: 'Super Admin',
+      RIDER: 'Rider'
     }
     return labels[role] || role
   }
@@ -176,7 +177,8 @@ export default function UserViewEditPage() {
       CUSTOMER: '#6b7280',
       STORE_ADMIN: '#3b82f6',
       FRANCHISE_ADMIN: '#8b5cf6',
-      SUPER_ADMIN: '#ef4444'
+      SUPER_ADMIN: '#ef4444',
+      RIDER: '#f59e0b'
     }
     return colors[role] || '#6b7280'
   }
@@ -497,6 +499,7 @@ export default function UserViewEditPage() {
                     <option value="STORE_ADMIN">Store Admin</option>
                     <option value="FRANCHISE_ADMIN">Franchise Admin</option>
                     <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="RIDER">Rider</option>
                   </select>
                 </div>
 

@@ -5,7 +5,7 @@ import { UserRole } from '@prisma/client'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const { id } = await params
@@ -36,7 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const { id } = await params
@@ -145,7 +145,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const { id } = await params

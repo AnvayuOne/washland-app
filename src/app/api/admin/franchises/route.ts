@@ -11,7 +11,7 @@ export async function GET() {
   try {
     console.log('Franchises API called')
     // For GET requests without request object, use original auth method
-    const auth = await requireAdminHybrid()
+    const auth = await requireAdminHybrid(undefined, ['SUPER_ADMIN'])
     console.log('Auth result:', auth)
     
     if (auth instanceof NextResponse && auth.status === 401) {
@@ -54,7 +54,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const body = await req.json()

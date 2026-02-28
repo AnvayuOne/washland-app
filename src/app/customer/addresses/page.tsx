@@ -59,9 +59,6 @@ export default function CustomerAddressesPage() {
 
       const response = await fetch('/api/customer/addresses', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 
@@ -132,9 +129,6 @@ export default function CustomerAddressesPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         },
         body: JSON.stringify(payload)
       })
@@ -169,9 +163,6 @@ export default function CustomerAddressesPage() {
       const response = await fetch(`/api/customer/addresses/${addressId}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         }
       })
 
@@ -197,9 +188,6 @@ export default function CustomerAddressesPage() {
       const response = await fetch(`/api/customer/addresses/${addressId}/set-default`, {
         method: 'PUT',
         headers: {
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         }
       })
 

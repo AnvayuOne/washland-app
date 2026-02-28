@@ -6,6 +6,7 @@ import { logActivity } from '@/lib/activity-logger'
 import { processOrderCompletionRewards } from '@/lib/loyalty'
 import { canTransition, isOrderStatus, type OrderStatusValue } from '@/lib/orderStatus'
 import { recomputeOrderTotals } from '@/lib/order-totals'
+import { getScope, scopeWhereForOrders } from '@/lib/scope'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,12 +14,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { id } = await params
 
     try {
-      const order = await prisma.order.findUnique({
-        where: { id },
+      const order = await prisma.order.findFirst({
+        where: {
+          AND: [{ id }, scopeWhereForOrders(scope)]
+        },
         include: {
           user: {
             select: {
@@ -70,9 +74,38 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
+      const latestRiderUpdate = await prisma.activity.findFirst({
+        where: {
+          type: 'RIDER_STATUS_UPDATE',
+          metadata: {
+            path: ['orderId'],
+            equals: order.id
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        select: {
+          id: true,
+          description: true,
+          metadata: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      })
+
       return NextResponse.json({
         success: true,
-        order,
+        order: {
+          ...order,
+          latestRiderUpdate
+        },
         message: 'Order retrieved successfully'
       })
     } catch (dbError) {
@@ -94,6 +127,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { id } = await params
     const body = await request.json()
@@ -111,8 +145,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
       // Check if order exists
-      const existingOrder = await prisma.order.findUnique({
-        where: { id }
+      const existingOrder = await prisma.order.findFirst({
+        where: {
+          AND: [{ id }, scopeWhereForOrders(scope)]
+        }
       })
 
       if (!existingOrder) {
@@ -195,6 +231,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             include: {
               service: true
             }
+          },
+          pickupRider: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
+          },
+          deliveryRider: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
           }
         }
       })
@@ -270,13 +324,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { id } = await params
 
     try {
       // Check if order exists
-      const existingOrder = await prisma.order.findUnique({
-        where: { id },
+      const existingOrder = await prisma.order.findFirst({
+        where: {
+          AND: [{ id }, scopeWhereForOrders(scope)]
+        },
         include: {
           items: true
         }

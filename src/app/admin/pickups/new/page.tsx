@@ -94,8 +94,6 @@ export default function SchedulePickupPage() {
     try {
       const response = await fetch(`/api/admin/orders?storeId=${storeId}&status=confirmed&status=in-progress`, {
         headers: {
-          'x-user-email': userEmail,
-          'x-user-role': userRole
         }
       })
 
@@ -173,8 +171,6 @@ export default function SchedulePickupPage() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': userEmail,
-            'x-user-role': userRole
           },
           body: JSON.stringify({
             pickupDate: pickupDateTime,

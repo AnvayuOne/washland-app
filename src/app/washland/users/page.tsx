@@ -89,6 +89,7 @@ export default function UsersPage() {
     'SUPER_ADMIN': '#ef4444',
     'FRANCHISE_ADMIN': '#3b82f6',
     'STORE_ADMIN': '#10b981',
+    'RIDER': '#f59e0b',
     'CUSTOMER': '#6b7280'
   }
 
@@ -96,6 +97,7 @@ export default function UsersPage() {
     'SUPER_ADMIN': 'Super Admin',
     'FRANCHISE_ADMIN': 'Franchise Admin',
     'STORE_ADMIN': 'Store Admin',
+    'RIDER': 'Rider',
     'CUSTOMER': 'Customer'
   }
 
@@ -163,6 +165,7 @@ export default function UsersPage() {
               <option value="SUPER_ADMIN">Super Admin</option>
               <option value="FRANCHISE_ADMIN">Franchise Admin</option>
               <option value="STORE_ADMIN">Store Admin</option>
+              <option value="RIDER">Rider</option>
               <option value="CUSTOMER">Customer</option>
             </select>
           </div>

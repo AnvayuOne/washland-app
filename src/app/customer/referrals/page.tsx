@@ -64,9 +64,6 @@ export default function CustomerReferralsPage() {
 
       const response = await fetch('/api/customer/referrals', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 
@@ -134,9 +131,6 @@ export default function CustomerReferralsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || '',
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole || ''
         },
         body: JSON.stringify({ 
           email: newReferralEmail 

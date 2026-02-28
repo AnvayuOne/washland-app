@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminHybrid } from '@/lib/hybrid-auth'
 import { prisma } from '@/lib/prisma'
+import { assertStoreInScope, getScope } from '@/lib/scope'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,9 +9,11 @@ export async function GET(request: NextRequest) {
     if (authResult instanceof NextResponse) {
       return authResult
     }
+    const scope = getScope(authResult)
 
     const { searchParams } = new URL(request.url)
     const storeId = searchParams.get('storeId')
+    const isAvailableParam = searchParams.get('isAvailable')
 
     if (!storeId) {
       return NextResponse.json(
@@ -29,13 +32,29 @@ export async function GET(request: NextRequest) {
       if (!store) {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
       }
+      await assertStoreInScope(storeId, scope)
+
+      let isAvailableFilter: boolean | undefined
+      if (isAvailableParam === 'true') {
+        isAvailableFilter = true
+      } else if (isAvailableParam === 'false') {
+        isAvailableFilter = false
+      }
 
       // Get all active riders
-      // For now, we'll return all riders. In a real system, you might want to filter by location, availability, etc.
       const riders = await prisma.user.findMany({
         where: {
           role: 'RIDER',
-          isActive: true
+          isActive: true,
+          ...(scope.role === 'STORE_ADMIN'
+            ? {
+                OR: [
+                  { pickupOrders: { some: { storeId } } },
+                  { deliveryOrders: { some: { storeId } } }
+                ]
+              }
+            : {}),
+          ...(isAvailableFilter !== undefined ? { isAvailable: isAvailableFilter } : {})
         },
         select: {
           id: true,
@@ -43,6 +62,7 @@ export async function GET(request: NextRequest) {
           lastName: true,
           email: true,
           phone: true,
+          isAvailable: true,
           createdAt: true
         },
         orderBy: {
@@ -53,6 +73,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         riders,
+        filters: {
+          isAvailable: isAvailableFilter ?? null
+        },
         store: {
           id: store.id,
           name: store.name,

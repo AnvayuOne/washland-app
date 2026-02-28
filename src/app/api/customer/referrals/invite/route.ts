@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/rbac'
+import { getScope } from '@/lib/scope'
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
-    const userRole = request.headers.get('x-user-role')
-
-    if (!userId || userRole !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireRole(['CUSTOMER'])
+    if (auth instanceof NextResponse) return auth
+    const scope = getScope(auth)
 
     const body = await request.json()
     const { email } = body
@@ -33,6 +32,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      userId: scope.userId,
       message: 'Referral invitation feature requires Prisma client regeneration with referral models',
       note: 'This endpoint will send email invitations once the database schema includes referral models and email service is configured'
     })

@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto'
 
 export async function POST(req: Request) {
   try {
-    const auth = await requireAdminHybrid(req)
+    const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const form = await req.formData()

@@ -82,9 +82,6 @@ export default function CustomerOrdersPage() {
 
       const response = await fetch('/api/customer/orders', {
         headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail || '',
-          'x-user-role': userRole
         }
       })
 
@@ -126,9 +123,6 @@ export default function CustomerOrdersPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': localStorage.getItem('userId') || '',
-          'x-user-email': localStorage.getItem('userEmail') || '',
-          'x-user-role': localStorage.getItem('userRole') || ''
         },
         body: JSON.stringify({ orderId })
       })

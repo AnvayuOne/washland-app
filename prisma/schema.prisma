@@ -72,6 +72,7 @@ enum ActivityType {
   PAYMENT_RECEIVED
   SUBSCRIPTION_CREATED
   REFERRAL_REWARDED
+  RIDER_STATUS_UPDATE
 }
 
 model Activity {
@@ -95,6 +96,7 @@ model User {
   phone         String?
   role          UserRole  @default(CUSTOMER)
   isActive      Boolean   @default(true)
+  isAvailable   Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   referralCode  String?   @unique // Personal referral code for this user
@@ -142,6 +144,7 @@ model Franchise {
   description String?
   adminId     String
   admin       User     @relation("FranchiseAdmin", fields: [adminId], references: [id])
+  commissionRate Decimal @default(0.10)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -355,6 +358,8 @@ model Order {
   totalAmount     Decimal         // Changed from Decimal for SQLite compatibility
   pickupDate      DateTime?
   deliveryDate    DateTime?
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
   specialInstructions String?
   stripePaymentIntentId String?
   

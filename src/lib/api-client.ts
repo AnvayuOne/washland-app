@@ -1,26 +1,13 @@
 /**
- * Enhanced fetch wrapper that automatically includes authentication headers
- * for localStorage-based authentication
+ * Enhanced fetch wrapper that relies on NextAuth session cookies.
  */
 export async function authenticatedFetch(
   url: string, 
   options: RequestInit = {}
 ): Promise<Response> {
-  // Get user auth from localStorage
-  const userEmail = localStorage.getItem('userEmail')
-  const userRole = localStorage.getItem('userRole')
-  
   // Prepare headers
   const headers = new Headers(options.headers)
-  
-  // Add auth headers if available
-  if (userEmail) {
-    headers.set('x-user-email', userEmail)
-  }
-  if (userRole) {
-    headers.set('x-user-role', userRole)
-  }
-  
+
   // Ensure Content-Type is set for POST/PUT requests
   if (options.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase())) {
     if (!headers.has('Content-Type')) {
