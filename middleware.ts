@@ -11,7 +11,8 @@ const PUBLIC_EXACT_ROUTES = [
   "/admin/login",
   "/washland/login",
   "/franchise/login",
-  "/rider/login"
+  "/rider/login",
+  "/api/admin/store-login"
 ]
 
 function isPublicRoute(pathname: string) {
