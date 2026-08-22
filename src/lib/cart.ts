@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { getPrimaryStoreId } from "@/lib/tenant"
 
 const DEFAULT_CURRENCY = "INR"
 
@@ -17,12 +18,23 @@ export async function findActiveCart(userId: string) {
 
 export async function getOrCreateActiveCart(userId: string) {
   const existingCart = await findActiveCart(userId)
-  if (existingCart) return existingCart
+  const storeId = await getPrimaryStoreId().catch(() => null)
+
+  if (existingCart) {
+    if (!existingCart.storeId && storeId) {
+      return prisma.cart.update({
+        where: { id: existingCart.id },
+        data: { storeId },
+      })
+    }
+    return existingCart
+  }
 
   try {
     return await prisma.cart.create({
       data: {
         userId,
+        storeId,
         status: "ACTIVE",
         currency: DEFAULT_CURRENCY,
         subtotal: new Prisma.Decimal(0),
@@ -37,6 +49,7 @@ export async function getOrCreateActiveCart(userId: string) {
     throw error
   }
 }
+
 
 export async function recomputeCartSubtotal(cartId: string, tx: typeof prisma = prisma) {
   const aggregate = await tx.cartItem.aggregate({

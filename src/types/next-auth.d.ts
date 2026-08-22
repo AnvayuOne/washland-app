@@ -7,9 +7,7 @@ declare module "next-auth" {
     firstName: string
     lastName: string
     role: UserRole
-    franchiseId?: string | null
     storeId?: string | null
-    managedFranchises?: any[]
     managedStores?: any[]
   }
 
@@ -20,9 +18,7 @@ declare module "next-auth" {
       firstName: string
       lastName: string
       role: UserRole
-      franchiseId?: string | null
       storeId?: string | null
-      managedFranchises?: any[]
       managedStores?: any[]
     }
   }
@@ -33,9 +29,7 @@ declare module "next-auth/jwt" {
     role: UserRole
     firstName: string
     lastName: string
-    franchiseId?: string | null
     storeId?: string | null
-    managedFranchises?: any[]
     managedStores?: any[]
   }
 }

@@ -46,7 +46,7 @@ function computeEffectiveRecord(
   if (storeOverride?.price !== undefined && storeOverride?.price !== null) {
     return {
       service,
-      franchiseConfig,
+      franchiseConfig: null,
       storeOverride,
       isAvailable,
       effectivePrice: storeOverride.price,
@@ -67,7 +67,7 @@ function computeEffectiveRecord(
 
   return {
     service,
-    franchiseConfig,
+    franchiseConfig: null,
     storeOverride,
     isAvailable,
     effectivePrice: service.basePrice,
@@ -82,18 +82,10 @@ export async function assertStoreExistsAndActive(storeId: string) {
       id: true,
       name: true,
       isActive: true,
-      franchiseId: true,
-      franchise: {
-        select: {
-          id: true,
-          name: true,
-          isActive: true,
-        },
-      },
     },
   })
 
-  if (!store || !store.isActive || !store.franchise.isActive) {
+  if (!store || !store.isActive) {
     return null
   }
 
@@ -146,40 +138,25 @@ export async function listEffectiveServicesForStore(
 
   const serviceIds = services.map((service) => service.id)
 
-  const [franchiseConfigs, storeOverrides] = serviceIds.length
-    ? await Promise.all([
-        prisma.franchiseService.findMany({
-          where: {
-            franchiseId: store.franchiseId,
-            serviceId: { in: serviceIds },
-          },
-          select: {
-            id: true,
-            serviceId: true,
-            isActive: true,
-            defaultPrice: true,
-          },
-        }),
-        prisma.storeService.findMany({
-          where: {
-            storeId: store.id,
-            serviceId: { in: serviceIds },
-          },
-          select: {
-            id: true,
-            serviceId: true,
-            isActive: true,
-            price: true,
-          },
-        }),
-      ])
-    : [[], []]
+  const storeOverrides = serviceIds.length
+    ? await prisma.storeService.findMany({
+        where: {
+          storeId: store.id,
+          serviceId: { in: serviceIds },
+        },
+        select: {
+          id: true,
+          serviceId: true,
+          isActive: true,
+          price: true,
+        },
+      })
+    : []
 
-  const franchiseMap = new Map(franchiseConfigs.map((item) => [item.serviceId, item]))
   const storeMap = new Map(storeOverrides.map((item) => [item.serviceId, item]))
 
   const records = services.map((service) =>
-    computeEffectiveRecord(service, franchiseMap.get(service.id) ?? null, storeMap.get(service.id) ?? null)
+    computeEffectiveRecord(service, null, storeMap.get(service.id) ?? null)
   )
 
   return {
@@ -207,38 +184,23 @@ export async function getEffectiveServiceForStore(serviceId: string, storeId: st
     return null
   }
 
-  const [franchiseConfig, storeOverride] = await Promise.all([
-    prisma.franchiseService.findUnique({
-      where: {
-        franchiseId_serviceId: {
-          franchiseId: store.franchiseId,
-          serviceId,
-        },
+  const storeOverride = await prisma.storeService.findUnique({
+    where: {
+      storeId_serviceId: {
+        storeId: store.id,
+        serviceId,
       },
-      select: {
-        id: true,
-        isActive: true,
-        defaultPrice: true,
-      },
-    }),
-    prisma.storeService.findUnique({
-      where: {
-        storeId_serviceId: {
-          storeId: store.id,
-          serviceId,
-        },
-      },
-      select: {
-        id: true,
-        isActive: true,
-        price: true,
-      },
-    }),
-  ])
+    },
+    select: {
+      id: true,
+      isActive: true,
+      price: true,
+    },
+  })
 
   return {
     store,
-    record: computeEffectiveRecord(service, franchiseConfig, storeOverride),
+    record: computeEffectiveRecord(service, null, storeOverride),
   }
 }
 

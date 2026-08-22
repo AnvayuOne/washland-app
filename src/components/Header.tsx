@@ -92,24 +92,23 @@ export default function Header() {
 
     // map a variety of possible role name formats to dashboard routes
     const routeMap: Record<string, string> = {
-      // super admin / washland
-      'super_admin': '/washland/dashboard',
-      'super-admin': '/washland/dashboard',
-      'superadmin': '/washland/dashboard',
-      'super admin': '/washland/dashboard',
-      'washland': '/washland/dashboard',
+      // admin roles
+      'super_admin': '/admin/dashboard',
+      'super-admin': '/admin/dashboard',
+      'superadmin': '/admin/dashboard',
+      'super admin': '/admin/dashboard',
+      'washland': '/admin/dashboard',
 
-      // franchise
-      'franchise_admin': '/franchise/dashboard',
-      'franchise-admin': '/franchise/dashboard',
-      'franchiseadmin': '/franchise/dashboard',
-      'franchise': '/franchise/dashboard',
+      'franchise_admin': '/admin/dashboard',
+      'franchise-admin': '/admin/dashboard',
+      'franchiseadmin': '/admin/dashboard',
+      'franchise': '/admin/dashboard',
 
-      // store / admin
       'store_admin': '/admin/dashboard',
       'store-admin': '/admin/dashboard',
       'storeadmin': '/admin/dashboard',
       'store': '/admin/dashboard',
+      'admin': '/admin/dashboard',
 
       // customer
       'customer': '/customer/dashboard',
@@ -162,19 +161,12 @@ export default function Header() {
             <nav className={styles.navLeft}>
             {!isLoggedIn && (
               <>
-                <Link href="/franchise" className={styles.navItem}>
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v11a2 2 0 002 2h10a2 2 0 002-2V7M9 7V5a3 3 0 016 0v2" />
-                  </svg>
-                  <span>Franchise</span>
-                </Link>
-
                 <Link href="/locations" className={styles.navItem}>
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span>Stores</span>
+                  <span>Our Store</span>
                 </Link>
 
                 <Link href="/pricing" className={styles.navItem}>

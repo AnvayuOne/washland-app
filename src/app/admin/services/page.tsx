@@ -195,8 +195,7 @@ export default function AdminServicesPage() {
                 <tr>
                   <th style={th}>Service</th>
                   <th style={th}>Category</th>
-                  <th style={th}>Global Price</th>
-                  <th style={th}>Franchise Price</th>
+                  <th style={th}>Base Price</th>
                   <th style={th}>Store Price</th>
                   <th style={th}>Enabled</th>
                   <th style={th}>Actions</th>
@@ -211,11 +210,6 @@ export default function AdminServicesPage() {
                     </td>
                     <td style={td}>{service.category}</td>
                     <td style={td}>INR {service.globalBasePrice.toFixed(2)}</td>
-                    <td style={td}>
-                      {service.franchiseConfig?.defaultPrice !== null && service.franchiseConfig?.defaultPrice !== undefined
-                        ? `INR ${service.franchiseConfig.defaultPrice.toFixed(2)}`
-                        : "Uses global"}
-                    </td>
                     <td style={td}>
                       <input
                         type="number"

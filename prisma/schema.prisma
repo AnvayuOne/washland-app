@@ -108,7 +108,6 @@ model User {
   subscriptions Subscription[]
 
   // Admin associations
-  managedFranchises Franchise[] @relation("FranchiseAdmin")
   managedStores     Store[]     @relation("StoreAdmin")
 
   // Rider associations
@@ -140,23 +139,6 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
-model Franchise {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  adminId     String
-  admin       User     @relation("FranchiseAdmin", fields: [adminId], references: [id])
-  commissionRate Decimal @default(0.10)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  stores      Store[]
-  franchiseServices FranchiseService[]
-
-  @@map("franchises")
-}
-
 model Store {
   id           String    @id @default(cuid())
   name         String
@@ -166,8 +148,6 @@ model Store {
   zipCode      String
   phone        String
   email        String?
-  franchiseId  String
-  franchise    Franchise @relation(fields: [franchiseId], references: [id])
   adminId      String
   admin        User      @relation("StoreAdmin", fields: [adminId], references: [id])
   isActive     Boolean   @default(true)
@@ -215,30 +195,12 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  franchiseServices FranchiseService[]
   storeServices StoreService[]
   orderItems    OrderItem[]
   cartItems     CartItem[]
   subscriptionItems SubscriptionItem[]
 
   @@map("services")
-}
-
-model FranchiseService {
-  id          String   @id @default(cuid())
-  franchiseId String
-  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
-  serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  defaultPrice Decimal?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([franchiseId, serviceId])
-  @@index([franchiseId, isActive])
-  @@index([serviceId])
-  @@map("franchise_services")
 }
 
 model ServiceCategory {

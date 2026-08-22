@@ -31,12 +31,6 @@ export const authOptions: NextAuthOptions = {
             lastName: true,
             role: true,
             isActive: true,
-            managedFranchises: {
-              select: {
-                id: true,
-                name: true
-              }
-            },
             managedStores: {
               select: {
                 id: true,
@@ -65,9 +59,7 @@ export const authOptions: NextAuthOptions = {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
-          franchiseId: user.managedFranchises[0]?.id ?? null,
           storeId: user.managedStores[0]?.id ?? null,
-          managedFranchises: user.managedFranchises,
           managedStores: user.managedStores
         }
       }
@@ -82,22 +74,18 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.firstName = user.firstName
         token.lastName = user.lastName
-        token.franchiseId = user.franchiseId
         token.storeId = user.storeId
-        token.managedFranchises = user.managedFranchises
         token.managedStores = user.managedStores
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.sub!
-        session.user.role = token.role as UserRole
+      if (token && session.user) {
+        session.user.id = token.sub as string
+        session.user.role = token.role as any
         session.user.firstName = token.firstName as string
         session.user.lastName = token.lastName as string
-        session.user.franchiseId = (token.franchiseId as string | null) ?? null
         session.user.storeId = (token.storeId as string | null) ?? null
-        session.user.managedFranchises = token.managedFranchises as any[]
         session.user.managedStores = token.managedStores as any[]
       }
       return session

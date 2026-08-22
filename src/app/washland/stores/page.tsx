@@ -73,8 +73,7 @@ export default function StoresPage() {
 
   const fetchStores = async () => {
     try {
-      const params = selectedFranchise !== 'all' ? `?franchiseId=${selectedFranchise}` : ''
-      const response = await api.get(`/api/admin/stores${params}`)
+      const response = await api.get('/api/admin/stores')
       if (response.ok) {
         const data = await response.json()
         setStores(data)
@@ -86,17 +85,7 @@ export default function StoresPage() {
     }
   }
 
-  const fetchFranchises = async () => {
-    try {
-      const response = await api.get('/api/admin/franchises')
-      if (response.ok) {
-        const data = await response.json()
-        setFranchises(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch franchises:', error)
-    }
-  }
+  const fetchFranchises = async () => {}
 
   if (!ready) return null
 

@@ -34,7 +34,6 @@ export default function NewUserPage() {
     email: '',
     phone: '',
     role: 'CUSTOMER' as 'CUSTOMER' | 'STORE_ADMIN' | 'FRANCHISE_ADMIN' | 'SUPER_ADMIN' | 'RIDER',
-    franchiseId: '',
     storeId: ''
   })
 
@@ -56,13 +55,6 @@ export default function NewUserPage() {
 
   const loadData = async () => {
     try {
-      // Load franchises for franchise admin assignment
-      const franchisesResponse = await fetch('/api/admin/franchises')
-      if (franchisesResponse.ok) {
-        const franchisesData = await franchisesResponse.json()
-        setFranchises(franchisesData)
-      }
-
       // Load stores for store admin assignment
       const storesResponse = await fetch('/api/admin/stores')
       if (storesResponse.ok) {
@@ -103,7 +95,6 @@ export default function NewUserPage() {
           email: formData.email.trim(),
           phone: formData.phone.trim() || undefined,
           role: formData.role,
-          franchiseId: formData.role === 'FRANCHISE_ADMIN' ? formData.franchiseId : undefined,
           storeId: formData.role === 'STORE_ADMIN' ? formData.storeId : undefined
         })
       })
@@ -354,45 +345,7 @@ export default function NewUserPage() {
                 </select>
               </div>
 
-              {/* Franchise Assignment (for Franchise Admins) */}
-              {formData.role === 'FRANCHISE_ADMIN' && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="franchiseId"
-                    style={{
-                      display: 'block',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}
-                  >
-                    Assign to Franchise
-                  </label>
-                  <select
-                    id="franchiseId"
-                    name="franchiseId"
-                    value={formData.franchiseId}
-                    onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      color: '#111827',
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    <option value="">Select a franchise</option>
-                    {franchises.map(franchise => (
-                      <option key={franchise.id} value={franchise.id}>
-                        {franchise.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
 
               {/* Store Assignment (for Store Admins) */}
               {formData.role === 'STORE_ADMIN' && (

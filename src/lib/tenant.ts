@@ -1,81 +1,66 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma, type PrismaClient } from "@prisma/client"
 
-export interface FranchiseContext {
-  franchiseId: string
-  franchiseName: string
-  commissionRate: number
+export interface StoreContext {
+  storeId: string
+  storeName: string
 }
-
-const DEFAULT_COMMISSION_RATE = 0.1
 
 type TenantDbClient = PrismaClient | Prisma.TransactionClient
 
-export async function requireFranchiseContext(
-  sessionOrUserId: { id?: string } | string,
-  prismaClient: TenantDbClient = prisma
-): Promise<FranchiseContext> {
-  const userId = typeof sessionOrUserId === "string" ? sessionOrUserId : sessionOrUserId.id
+export async function getPrimaryStore(prismaClient: TenantDbClient = prisma) {
+  const defaultStoreId = process.env.DEFAULT_STORE_ID
 
-  if (!userId) {
-    throw new Error("Missing authenticated user id")
+  if (defaultStoreId) {
+    const store = await prismaClient.store.findUnique({
+      where: { id: defaultStoreId },
+    })
+    if (!store || !store.isActive) {
+      throw new Error(`Configured DEFAULT_STORE_ID "${defaultStoreId}" was not found or is inactive.`)
+    }
+    return store
   }
 
-  const user = await prismaClient.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      role: true,
-      managedFranchises: {
-        where: { isActive: true },
-        select: {
-          id: true,
-          name: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        take: 1,
-      },
-    },
+  // Strict production behavior: require DEFAULT_STORE_ID
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("DEFAULT_STORE_ID environment variable must be configured in production.")
+  }
+
+  // Documented development-only fallback: query the primary active store record
+  const store = await prismaClient.store.findFirst({
+    where: { isActive: true },
+    orderBy: { createdAt: "asc" },
   })
 
-  if (!user || user.role !== "FRANCHISE_ADMIN") {
-    throw new Error("Franchise admin access required")
+  if (!store) {
+    throw new Error("No active store found in database")
   }
 
-  const managedFranchise = user.managedFranchises[0]
-  if (!managedFranchise) {
-    throw new Error("Account not linked to a franchise")
-  }
-
-  return {
-    franchiseId: managedFranchise.id,
-    franchiseName: managedFranchise.name,
-    // Keep app functional when DB is behind on `franchises.commissionRate` migration.
-    commissionRate: DEFAULT_COMMISSION_RATE,
-  }
+  return store
 }
 
-export async function assertStoreBelongsToFranchise(
+export async function getPrimaryStoreId(prismaClient: TenantDbClient = prisma): Promise<string> {
+  const store = await getPrimaryStore(prismaClient)
+  return store.id
+}
+
+export async function assertStoreActive(
   storeId: string,
-  franchiseId: string,
   prismaClient: TenantDbClient = prisma
 ) {
   const store = await prismaClient.store.findFirst({
     where: {
       id: storeId,
-      franchiseId,
+      isActive: true,
     },
     select: {
       id: true,
       name: true,
-      franchiseId: true,
     },
   })
 
   if (!store) {
-    throw new Error("Store does not belong to your franchise")
+    throw new Error("Store is not active or does not exist")
   }
 
   return store

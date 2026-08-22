@@ -13,16 +13,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const store = await prisma.store.findUnique({
       where: { id },
       include: {
-        franchise: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        },
         admin: {
           select: {
             id: true,
@@ -67,7 +57,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       state, 
       zipCode, 
       phone, 
-      franchiseId,
       managerFirstName,
       managerLastName,
       managerEmail,
@@ -91,7 +80,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       state?: string;
       zipCode?: string;
       phone?: string;
-      franchiseId?: string;
       adminId?: string;
       isActive?: boolean;
     } = {}
@@ -103,7 +91,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (state !== undefined) updateData.state = state
     if (zipCode !== undefined) updateData.zipCode = zipCode
     if (phone !== undefined) updateData.phone = phone
-    if (franchiseId !== undefined) updateData.franchiseId = franchiseId
     if (isActive !== undefined) updateData.isActive = isActive
 
     // Handle manager update
@@ -162,16 +149,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       where: { id },
       data: updateData,
       include: {
-        franchise: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        },
         admin: {
           select: {
             id: true,

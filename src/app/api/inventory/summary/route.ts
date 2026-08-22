@@ -76,8 +76,6 @@ export async function GET(request: NextRequest) {
     const storeSummary = stores.map((store) => ({
       storeId: store.id,
       storeName: store.name,
-      franchiseId: store.franchise.id,
-      franchiseName: store.franchise.name,
       itemCount: byStore[store.id]?.itemCount || 0,
       lowStockCount: byStore[store.id]?.lowStockCount || 0,
       stockValue: byStore[store.id]?.stockValue || 0,

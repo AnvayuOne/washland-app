@@ -2,9 +2,9 @@ import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 
 // Intended protection:
-// - Public: /auth/* and role login pages (/admin/login, /washland/login, /franchise/login, /rider/login)
-// - Protected: all other /admin/*, /washland/*, /franchise/*, /rider/*, /customer/*,
-//   and private API namespaces (/api/admin/*, /api/customer/*, /api/rider/*, /api/franchise/*, /api/inventory/*)
+// - Public: /auth/* and role login pages (/admin/login, /rider/login)
+// - Protected: all other /admin/*, /rider/*, /customer/*,
+//   and private API namespaces (/api/admin/*, /api/customer/*, /api/rider/*, /api/inventory/*)
 const PUBLIC_ROUTE_PREFIXES = ["/auth/"]
 const PUBLIC_EXACT_ROUTES = [
   "/denied",
@@ -25,9 +25,7 @@ function isPublicRoute(pathname: string) {
 function dashboardForRole(role?: string) {
   switch (role) {
     case "SUPER_ADMIN":
-      return "/washland/dashboard"
     case "FRANCHISE_ADMIN":
-      return "/franchise/dashboard"
     case "STORE_ADMIN":
       return "/admin/dashboard"
     case "CUSTOMER":
@@ -37,10 +35,6 @@ function dashboardForRole(role?: string) {
     default:
       return "/"
   }
-}
-
-function redirectToRoleDashboard(req: { url: string }, role?: string) {
-  return NextResponse.redirect(new URL(dashboardForRole(role), req.url))
 }
 
 export default withAuth(
@@ -77,16 +71,12 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    if (pathname.startsWith("/washland")) {
-      return enforceRole(["SUPER_ADMIN"])
-    }
-
-    if (pathname.startsWith("/franchise")) {
-      return enforceRole(["FRANCHISE_ADMIN"])
+    if (pathname.startsWith("/washland") || pathname.startsWith("/franchise")) {
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN", "FRANCHISE_ADMIN"])
     }
 
     if (pathname.startsWith("/admin")) {
-      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN"])
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN", "FRANCHISE_ADMIN"])
     }
 
     if (pathname.startsWith("/rider")) {
@@ -98,7 +88,7 @@ export default withAuth(
     }
 
     if (pathname.startsWith("/api/admin")) {
-      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN"])
+      return enforceRole(["SUPER_ADMIN", "STORE_ADMIN", "FRANCHISE_ADMIN"])
     }
 
     if (pathname.startsWith("/api/customer")) {
@@ -107,10 +97,6 @@ export default withAuth(
 
     if (pathname.startsWith("/api/rider")) {
       return enforceRole(["RIDER"])
-    }
-
-    if (pathname.startsWith("/api/franchise")) {
-      return enforceRole(["FRANCHISE_ADMIN"])
     }
 
     if (pathname.startsWith("/api/inventory")) {

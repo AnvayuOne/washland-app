@@ -52,7 +52,6 @@ export default function UserViewEditPage() {
     phone: '',
     role: 'CUSTOMER' as User['role'],
     isActive: true,
-    franchiseId: '',
     storeId: ''
   })
 
@@ -87,7 +86,6 @@ export default function UserViewEditPage() {
           phone: data.phone || '',
           role: data.role || 'CUSTOMER',
           isActive: data.isActive ?? true,
-          franchiseId: data.managedFranchises?.[0]?.id || '',
           storeId: data.managedStores?.[0]?.id || ''
         })
       } else {
@@ -134,7 +132,6 @@ export default function UserViewEditPage() {
           phone: formData.phone.trim() || undefined,
           role: formData.role,
           isActive: formData.isActive,
-          franchiseId: formData.role === 'FRANCHISE_ADMIN' ? formData.franchiseId : undefined,
           storeId: formData.role === 'STORE_ADMIN' ? formData.storeId : undefined
         })
       })
@@ -503,46 +500,7 @@ export default function UserViewEditPage() {
                   </select>
                 </div>
 
-                {/* Franchise Assignment (for Franchise Admins) */}
-                {formData.role === 'FRANCHISE_ADMIN' && (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label
-                      htmlFor="franchiseId"
-                      style={{
-                        display: 'block',
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        color: '#374151',
-                        marginBottom: '0.5rem'
-                      }}
-                    >
-                      Assigned Franchise
-                    </label>
-                    <select
-                      id="franchiseId"
-                      name="franchiseId"
-                      value={formData.franchiseId}
-                      onChange={handleInputChange}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        color: '#111827',
-                        backgroundColor: 'white'
-                      }}
-                    >
-                      <option value="">Select a franchise</option>
-                      {/* This would need to be populated with actual franchises */}
-                      {user.managedFranchises.map(franchise => (
-                        <option key={franchise.id} value={franchise.id}>
-                          {franchise.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+
 
                 {/* Store Assignment (for Store Admins) */}
                 {formData.role === 'STORE_ADMIN' && (

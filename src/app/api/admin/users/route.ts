@@ -12,20 +12,9 @@ const userResponseSelect = {
   phone: true,
   role: true,
   isActive: true,
-  franchiseId: true,
   storeId: true,
   createdAt: true,
   updatedAt: true,
-  managedFranchises: {
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  },
   managedStores: {
     select: {
       id: true,
@@ -37,17 +26,7 @@ const userResponseSelect = {
       phone: true,
       isActive: true,
       createdAt: true,
-      updatedAt: true,
-      franchise: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      }
+      updatedAt: true
     }
   },
   _count: {
@@ -64,7 +43,6 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const role = searchParams.get('role')
-    const franchiseId = searchParams.get('franchiseId')
 
     const whereClause = {
       ...(role && role !== 'all' && { role: role as UserRole })
@@ -95,7 +73,6 @@ export async function POST(req: Request) {
       email,
       phone,
       role,
-      franchiseId,
       storeId
     } = body
 
@@ -129,15 +106,6 @@ export async function POST(req: Request) {
       data: userData,
       select: userResponseSelect
     })
-
-    // Update franchise admin if specified
-    if (role === 'FRANCHISE_ADMIN' && franchiseId) {
-      await prisma.franchise.update({
-        where: { id: franchiseId },
-        data: { adminId: user.id },
-        select: { id: true }
-      })
-    }
 
     // Update store manager if specified
     if (role === 'STORE_ADMIN' && storeId) {

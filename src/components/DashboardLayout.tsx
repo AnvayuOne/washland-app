@@ -73,8 +73,7 @@ export default function DashboardLayout({
               backgroundClip: 'text'
             }}>
               {userRole === 'SUPER_ADMIN' ? 'Washland Admin Portal' : 
-               userRole === 'FRANCHISE_ADMIN' ? 'Franchise Management' :
-               userRole === 'STORE_ADMIN' ? 'Store Management' : 'Dashboard'}
+               userRole === 'FRANCHISE_ADMIN' || userRole === 'STORE_ADMIN' ? 'Store Management' : 'Dashboard'}
             </h2>
           </div>
           
@@ -109,8 +108,7 @@ export default function DashboardLayout({
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                   {userRole === 'SUPER_ADMIN' ? 'Super Admin' : 
-                   userRole === 'FRANCHISE_ADMIN' ? 'Franchise Admin' :
-                   userRole === 'STORE_ADMIN' ? 'Store Admin' : 'User'}
+                   userRole === 'FRANCHISE_ADMIN' || userRole === 'STORE_ADMIN' ? 'Store Admin' : 'User'}
                 </div>
               </div>
             </div>

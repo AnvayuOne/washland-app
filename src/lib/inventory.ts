@@ -5,18 +5,12 @@ import { scopeWhereForStores } from "@/lib/scope"
 
 export const INVENTORY_ALLOWED_ROLES: UserRole[] = [
   UserRole.SUPER_ADMIN,
-  UserRole.FRANCHISE_ADMIN,
   UserRole.STORE_ADMIN,
 ]
 
 export interface AccessibleStore {
   id: string
   name: string
-  franchiseId: string
-  franchise: {
-    id: string
-    name: string
-  }
 }
 
 export async function resolveAccessibleStores(scope: TenantScope, requestedStoreId?: string | null) {
@@ -25,16 +19,10 @@ export async function resolveAccessibleStores(scope: TenantScope, requestedStore
     select: {
       id: true,
       name: true,
-      franchiseId: true,
-      franchise: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
     },
-    orderBy: [{ franchise: { name: "asc" } }, { name: "asc" }],
+    orderBy: { name: "asc" },
   })
+
 
   if (!stores.length) {
     throw new Error("No stores available in your tenant scope")
