@@ -144,23 +144,6 @@ export default function DynamicHeroSection() {
               >
                 📅 {heroContent.primaryBtnText}
               </Link>
-              <Link
-                href={heroContent.secondaryBtnLink}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                  border: '2px solid white',
-                  fontWeight: '500',
-                  padding: '1rem 2.5rem',
-                  borderRadius: '0.75rem',
-                  textDecoration: 'none',
-                  fontSize: '1.125rem',
-                  textAlign: 'center',
-                  transition: 'all 0.3s'
-                }}
-              >
-                📍 {heroContent.secondaryBtnText}
-              </Link>
             </div>
           </div>
 
@@ -195,11 +178,7 @@ export default function DynamicHeroSection() {
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white' }}>100%</div>
-              <div style={{ fontSize: '0.875rem' }}>Satisfaction</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white' }}>50+</div>
-              <div style={{ fontSize: '0.875rem' }}>Store Locations</div>
+              <div style={{ fontSize: '0.875rem' }}>Satisfaction Guarantee</div>
             </div>
           </div>
         </div>

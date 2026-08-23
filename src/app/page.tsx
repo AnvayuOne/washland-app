@@ -984,7 +984,7 @@ export default function HomePage() {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>Washland</h3>
               </div>
               <p style={{ color: '#9ca3af', fontSize: '0.875rem', lineHeight: '1.6' }}>
-                Premium dry cleaning and laundry services with convenient pickup & delivery across multiple franchise locations.
+                Premium dry cleaning and laundry services with convenient pickup & delivery.
               </p>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <a href="#" style={{ color: '#9ca3af', fontSize: '1.25rem' }} title="Facebook">📘</a>
@@ -1009,8 +1009,6 @@ export default function HomePage() {
               <h4 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '1rem' }}>Company</h4>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 <li style={{ marginBottom: '0.5rem' }}><a href="#about" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>About Us</a></li>
-                <li style={{ marginBottom: '0.5rem' }}><a href="#locations" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Locations</a></li>
-                <li style={{ marginBottom: '0.5rem' }}><a href="/franchise" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Franchise</a></li>
                 <li style={{ marginBottom: '0.5rem' }}><a href="/contact" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Contact</a></li>
               </ul>
             </div>

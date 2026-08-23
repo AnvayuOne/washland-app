@@ -9,24 +9,6 @@ export interface StoreContext {
 type TenantDbClient = PrismaClient | Prisma.TransactionClient
 
 export async function getPrimaryStore(prismaClient: TenantDbClient = prisma) {
-  const defaultStoreId = process.env.DEFAULT_STORE_ID
-
-  if (defaultStoreId) {
-    const store = await prismaClient.store.findUnique({
-      where: { id: defaultStoreId },
-    })
-    if (!store || !store.isActive) {
-      throw new Error(`Configured DEFAULT_STORE_ID "${defaultStoreId}" was not found or is inactive.`)
-    }
-    return store
-  }
-
-  // Strict production behavior: require DEFAULT_STORE_ID
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("DEFAULT_STORE_ID environment variable must be configured in production.")
-  }
-
-  // Documented development-only fallback: query the primary active store record
   const store = await prismaClient.store.findFirst({
     where: { isActive: true },
     orderBy: { createdAt: "asc" },
