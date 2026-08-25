@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const paymentStatus = searchParams.get('paymentStatus')
     const storeId = searchParams.get('storeId')
-    const franchiseId = searchParams.get('franchiseId')
     const userId = searchParams.get('userId')
     const lookup = searchParams.get('lookup')
     const page = parseInt(searchParams.get('page') || '1')
@@ -97,18 +96,6 @@ export async function GET(request: NextRequest) {
     if (storeId) {
       await assertStoreInScope(storeId, scope)
       andFilters.push({ storeId })
-    }
-    
-    if (franchiseId) {
-      if (scope.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Franchise filter not allowed for this role' }, { status: 403 })
-      }
-
-      andFilters.push({
-        store: {
-          franchiseId: franchiseId
-        }
-      })
     }
     
     if (userId) {

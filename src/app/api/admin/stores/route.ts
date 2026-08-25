@@ -12,22 +12,8 @@ export async function GET(req: Request) {
     const auth = await requireAdminHybrid(req, ['SUPER_ADMIN'])
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
-    const { searchParams } = new URL(req.url)
-    const franchiseId = searchParams.get('franchiseId')
-
     const stores = await prisma.store.findMany({
-      where: franchiseId ? { franchiseId } : {},
       include: { 
-        franchise: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        }, 
         admin: {
           select: {
             id: true,
@@ -68,7 +54,6 @@ export async function POST(req: Request) {
       state, 
       pincode, 
       phone, 
-      franchiseId,
       managerFirstName,
       managerLastName,
       managerEmail,
@@ -76,8 +61,8 @@ export async function POST(req: Request) {
     } = body
 
     // Validate required fields including manager details
-    if (!name || !address || !city || !franchiseId) {
-      return NextResponse.json({ error: 'Name, address, city, and franchise are required' }, { status: 400 })
+    if (!name || !address || !city) {
+      return NextResponse.json({ error: 'Name, address, and city are required' }, { status: 400 })
     }
 
     if (!managerFirstName || !managerLastName || !managerEmail || !managerPhone) {
@@ -90,23 +75,6 @@ export async function POST(req: Request) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(managerEmail)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
-    }
-
-    // Validate franchise exists
-    const franchise = await prisma.franchise.findUnique({
-      where: { id: franchiseId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    })
-    
-    if (!franchise) {
-      return NextResponse.json({ error: 'Franchise not found' }, { status: 404 })
     }
 
     let admin = null
@@ -201,21 +169,10 @@ export async function POST(req: Request) {
         state: state || '',
         zipCode: pincode || '',
         phone: phone || '',
-        franchiseId,
         adminId: admin.id, // Always assign the store admin
         isActive: true
       },
       include: {
-        franchise: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        },
         admin: {
           select: {
             id: true,
@@ -238,13 +195,11 @@ export async function POST(req: Request) {
     // Log the store creation activity
     await logActivity({
       type: 'STORE_CREATED',
-      description: `New store "${name}" added to ${franchise.name} franchise`,
+      description: `New store "${name}" created`,
       userId: (auth as any)?.id || null,
       metadata: {
         storeId: store.id,
         storeName: name,
-        franchiseId: franchise.id,
-        franchiseName: franchise.name,
         adminId: admin.id,
         adminEmail: managerEmail,
         city: city

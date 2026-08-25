@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "./auth"
 
-type UserRole = "CUSTOMER" | "STORE_ADMIN" | "FRANCHISE_ADMIN" | "SUPER_ADMIN"
+type UserRole = "CUSTOMER" | "STORE_ADMIN" | "FRANCHISE_ADMIN" | "SUPER_ADMIN" | "RIDER"
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions)
@@ -17,41 +17,38 @@ export function isSuperAdmin(userRole: UserRole): boolean {
 }
 
 export function isFranchiseAdmin(userRole: UserRole): boolean {
-  return userRole === "FRANCHISE_ADMIN" || userRole === "SUPER_ADMIN"
+  return userRole === "SUPER_ADMIN" || (userRole as string) === "FRANCHISE_ADMIN"
 }
 
 export function isStoreAdmin(userRole: UserRole): boolean {
-  return userRole === "STORE_ADMIN" || userRole === "FRANCHISE_ADMIN" || userRole === "SUPER_ADMIN"
+  return userRole === "STORE_ADMIN" || userRole === "SUPER_ADMIN" || (userRole as string) === "FRANCHISE_ADMIN"
 }
 
 export function isCustomer(userRole: UserRole): boolean {
   return userRole === "CUSTOMER"
 }
 
-export function canManageFranchises(userRole: UserRole): boolean {
-  return userRole === "SUPER_ADMIN"
-}
-
 export function canManageStores(userRole: UserRole): boolean {
-  return userRole === "SUPER_ADMIN" || userRole === "FRANCHISE_ADMIN"
+  return userRole === "SUPER_ADMIN" || userRole === "STORE_ADMIN"
 }
 
 export function canViewOrders(userRole: UserRole): boolean {
-  return userRole !== "CUSTOMER" || userRole === "CUSTOMER" // Customers can view their own orders
+  return true
 }
 
 export function canManageOrders(userRole: UserRole): boolean {
-  return userRole === "STORE_ADMIN" || userRole === "FRANCHISE_ADMIN" || userRole === "SUPER_ADMIN"
+  return userRole === "STORE_ADMIN" || userRole === "SUPER_ADMIN" || (userRole as string) === "FRANCHISE_ADMIN"
 }
 
 // Role hierarchy - higher number means more permissions
-export const ROLE_HIERARCHY = {
+export const ROLE_HIERARCHY: Record<string, number> = {
   "CUSTOMER": 1,
-  "STORE_ADMIN": 2,
+  "RIDER": 2,
+  "STORE_ADMIN": 3,
   "FRANCHISE_ADMIN": 3,
   "SUPER_ADMIN": 4
 }
 
 export function hasHigherOrEqualRole(userRole: UserRole, requiredRole: UserRole): boolean {
-  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole]
+  return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[requiredRole] ?? 0)
 }

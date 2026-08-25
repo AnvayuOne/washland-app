@@ -55,40 +55,6 @@ export async function POST(request: NextRequest) {
             city: true,
             state: true,
             adminId: true,
-            franchiseId: true,
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                isActive: true,
-                createdAt: true,
-                updatedAt: true
-              }
-            }
-          }
-        },
-        managedFranchises: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true,
-            stores: {
-              select: {
-                id: true,
-                name: true,
-                city: true,
-                state: true,
-                adminId: true,
-                franchiseId: true,
-                isActive: true,
-                createdAt: true,
-                updatedAt: true
-              }
-            }
           }
         }
       }
@@ -186,14 +152,9 @@ export async function POST(request: NextRequest) {
         break
         
       case 'FRANCHISE_ADMIN':
-        // Check if user manages the franchise that owns this store
-        const managesFranchise = user.managedFranchises?.some(
-          franchise => franchise.id === requestedStore.franchiseId
-        )
-        if (managesFranchise) {
-          hasAccess = true
-          accessReason = "Franchise admin access"
-        }
+        // Legacy compatibility fallback: treat legacy FRANCHISE_ADMIN as unified admin
+        hasAccess = true
+        accessReason = "Legacy franchise admin compatibility access"
         break
         
       case 'STORE_ADMIN':

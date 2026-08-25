@@ -134,60 +134,7 @@ export default React.memo(function UnifiedSidebar({
       ]
     }
 
-    if (roleNormalized === 'franchiseadmin' || role === 'FRANCHISE_ADMIN') {
-      return [
-        {
-          label: 'Dashboard',
-          href: '/franchise/dashboard',
-          icon: <DashboardIcon />
-        },
-        {
-          label: 'My Stores',
-          href: '/franchise/stores',
-          icon: <StoreIcon />,
-          children: [
-            { label: 'All Stores', href: '/franchise/stores', icon: <ListIcon /> },
-            { label: 'Add Store', href: '/franchise/stores/new', icon: <PlusIcon /> }
-          ]
-        },
-        {
-          label: 'Orders',
-          href: '/franchise/orders',
-          icon: <OrdersIcon />
-        },
-        {
-          label: 'Services',
-          href: '/franchise/services',
-          icon: <ServicesIcon />
-        },
-        {
-          label: 'Inventory',
-          href: '/franchise/inventory',
-          icon: <InventoryIcon />
-        },
-        {
-          label: 'Staff',
-          href: '/franchise/staff',
-          icon: <UsersIcon />,
-          children: [
-            { label: 'Store Managers', href: '/franchise/staff', icon: <ListIcon /> },
-            { label: 'Add Staff', href: '/franchise/staff/new', icon: <PlusIcon /> }
-          ]
-        },
-        {
-          label: 'Reports',
-          href: '/franchise/reports',
-          icon: <ReportsIcon />
-        },
-        {
-          label: 'Settings',
-          href: '/franchise/settings',
-          icon: <SettingsIcon />
-        }
-      ]
-    }
-
-    if (roleNormalized === 'storeadmin' || role === 'STORE_ADMIN') {
+    if (roleNormalized === 'franchiseadmin' || role === 'FRANCHISE_ADMIN' || roleNormalized === 'storeadmin' || role === 'STORE_ADMIN') {
       return [
         {
           label: 'Dashboard',
@@ -199,14 +146,10 @@ export default React.memo(function UnifiedSidebar({
           href: '/admin/orders',
           icon: <OrdersIcon />,
           children: [
-            { label: 'Active Orders', href: '/admin/orders', icon: <ListIcon /> },
+            { label: 'All Orders', href: '/admin/orders', icon: <ListIcon /> },
+            { label: 'Create Order', href: '/admin/orders/new', icon: <PlusIcon /> },
             { label: 'Order History', href: '/admin/orders/history', icon: <HistoryIcon /> }
           ]
-        },
-        {
-          label: 'Customers',
-          href: '/admin/customers',
-          icon: <CustomersIcon />
         },
         {
           label: 'Services',
@@ -217,6 +160,11 @@ export default React.memo(function UnifiedSidebar({
           label: 'Inventory',
           href: '/admin/inventory',
           icon: <InventoryIcon />
+        },
+        {
+          label: 'Customers',
+          href: '/admin/customers',
+          icon: <UsersIcon />
         },
         {
           label: 'Reports',
@@ -385,8 +333,7 @@ export default React.memo(function UnifiedSidebar({
 
         <Link href={
           userRole === 'SUPER_ADMIN' ? '/washland/dashboard' :
-          userRole === 'FRANCHISE_ADMIN' ? '/franchise/dashboard' :
-          userRole === 'STORE_ADMIN' ? '/admin/dashboard' :
+          userRole === 'FRANCHISE_ADMIN' || userRole === 'STORE_ADMIN' ? '/admin/dashboard' :
           userRole === 'CUSTOMER' ? '/customer/dashboard' :
           '/dashboard'
         } style={{ textDecoration: 'none', color: 'inherit' }}>

@@ -27,7 +27,6 @@ export default function NewStorePage() {
     state: '',
     pincode: '',
     phone: '',
-    franchiseId: '',
     managerFirstName: '',
     managerLastName: '',
     managerEmail: '',
@@ -159,29 +158,6 @@ export default function NewStorePage() {
         }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
-            {/* Franchise Selection */}
-            <div>
-              <h3 style={{ 
-                fontSize: '1.125rem', 
-                fontWeight: '600', 
-                color: '#111827',
-                marginBottom: '1rem'
-              }}>
-                Franchise Assignment
-              </h3>
-              
-              <FormSelect
-                label="Franchise"
-                required
-                value={formData.franchiseId}
-                onChange={(value) => handleInputChange('franchiseId', value)}
-                options={[
-                  { value: '', label: 'Select a franchise' },
-                  ...franchises.map(f => ({ value: f.id.toString(), label: f.name }))
-                ]}
-              />
-            </div>
-
             {/* Store Information */}
             <div>
               <h3 style={{ 
@@ -339,7 +315,7 @@ export default function NewStorePage() {
               
               <button
                 type="submit"
-                disabled={loading || !formData.name || !formData.address || !formData.city || !formData.franchiseId || !formData.managerFirstName || !formData.managerLastName || !formData.managerEmail || !formData.managerPhone}
+                disabled={loading || !formData.name || !formData.address || !formData.city || !formData.managerFirstName || !formData.managerLastName || !formData.managerEmail || !formData.managerPhone}
                 style={{
                   padding: '0.75rem 1.5rem',
                   backgroundColor: loading ? '#9ca3af' : '#10b981',

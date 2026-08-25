@@ -7,11 +7,6 @@ import { useToast } from "@/components/ToastProvider"
 interface StoreOption {
   id: string
   name: string
-  franchiseId: string
-  franchise: {
-    id: string
-    name: string
-  }
 }
 
 interface InventoryItem {

@@ -53,7 +53,6 @@ export default function StoreViewEditPage() {
     state: '',
     zipCode: '',
     phone: '',
-    franchiseId: '',
     managerFirstName: '',
     managerLastName: '',
     managerEmail: '',
@@ -92,7 +91,6 @@ export default function StoreViewEditPage() {
           state: data.state || '',
           zipCode: data.zipCode || '',
           phone: data.phone || '',
-          franchiseId: data.franchiseId || '',
           managerFirstName: data.admin?.firstName || '',
           managerLastName: data.admin?.lastName || '',
           managerEmail: data.admin?.email || '',
@@ -143,7 +141,6 @@ export default function StoreViewEditPage() {
           state: formData.state.trim(),
           zipCode: formData.zipCode.trim(),
           phone: formData.phone.trim() || undefined,
-          franchiseId: formData.franchiseId,
           managerFirstName: formData.managerFirstName.trim() || undefined,
           managerLastName: formData.managerLastName.trim() || undefined,
           managerEmail: formData.managerEmail.trim() || undefined,
@@ -522,40 +519,7 @@ export default function StoreViewEditPage() {
                   />
                 </div>
 
-                {/* Franchise */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="franchiseId"
-                    style={{
-                      display: 'block',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}
-                  >
-                    Franchise
-                  </label>
-                  <select
-                    id="franchiseId"
-                    name="franchiseId"
-                    value={formData.franchiseId}
-                    onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      color: '#111827',
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    <option value="">Select a franchise</option>
-                    {/* This would need to be populated with actual franchises */}
-                    <option value={store.franchise.id}>{store.franchise.name}</option>
-                  </select>
-                </div>
+
 
                 {/* Manager Details */}
                 <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '1rem' }}>

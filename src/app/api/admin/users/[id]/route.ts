@@ -11,20 +11,9 @@ const userResponseSelect = {
   phone: true,
   role: true,
   isActive: true,
-  franchiseId: true,
   storeId: true,
   createdAt: true,
   updatedAt: true,
-  managedFranchises: {
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  },
   managedStores: {
     select: {
       id: true,
@@ -36,17 +25,7 @@ const userResponseSelect = {
       phone: true,
       isActive: true,
       createdAt: true,
-      updatedAt: true,
-      franchise: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      }
+      updatedAt: true
     }
   },
   _count: {
@@ -93,7 +72,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       phone,
       role,
       isActive,
-      franchiseId,
       storeId
     } = body
 
@@ -147,14 +125,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     })
 
     // Handle role-specific assignments
-    if (role === 'FRANCHISE_ADMIN' && franchiseId) {
-      // Update franchise to use this admin
-      await prisma.franchise.update({
-        where: { id: franchiseId },
-        data: { adminId: updatedUser.id },
-        select: { id: true }
-      })
-    }
 
     if (role === 'STORE_ADMIN' && storeId) {
       // Update store to use this admin

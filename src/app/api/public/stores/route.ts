@@ -15,16 +15,10 @@ export async function GET() {
         state: true,
         zipCode: true,
         phone: true,
-        email: true,
-        franchise: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+        email: true
       },
       orderBy: {
-        name: 'asc'
+        createdAt: 'asc'
       }
     })
 
@@ -37,7 +31,6 @@ export async function GET() {
       zipCode: store.zipCode,
       phone: store.phone,
       email: store.email || '',
-      franchise: store.franchise,
       pincode: store.zipCode,
       lat: null,
       lon: null,

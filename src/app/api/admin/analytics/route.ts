@@ -11,7 +11,6 @@ export async function GET(req: Request) {
     const type = searchParams.get('type') || 'overview'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
-    const franchiseId = searchParams.get('franchiseId')
     const storeId = searchParams.get('storeId')
 
     // Set default date range to last 30 days if not provided
@@ -27,10 +26,6 @@ export async function GET(req: Request) {
 
     if (storeId) {
       whereClause.storeId = storeId
-    } else if (franchiseId) {
-      whereClause.store = {
-        franchiseId: franchiseId
-      }
     }
 
     if (type === 'overview') {
@@ -41,7 +36,6 @@ export async function GET(req: Request) {
         completedOrders,
         activeOrders,
         activeCustomers,
-        franchiseCount,
         storeCount,
         serviceCount,
         recentOrders
@@ -88,9 +82,6 @@ export async function GET(req: Request) {
           }
         }),
         
-        // Total franchises
-        prisma.franchise.count(),
-        
         // Total stores
         prisma.store.count(),
         
@@ -111,12 +102,8 @@ export async function GET(req: Request) {
               }
             },
             store: {
-              include: {
-                franchise: {
-                  select: {
-                    name: true
-                  }
-                }
+              select: {
+                name: true
               }
             }
           },
@@ -134,7 +121,6 @@ export async function GET(req: Request) {
           pendingOrders: totalOrders - completedOrders,
           completionRate: totalOrders > 0 ? (completedOrders / totalOrders * 100).toFixed(1) : 0,
           activeCustomers,
-          franchiseCount,
           storeCount,
           serviceCount
         },
@@ -157,9 +143,7 @@ export async function GET(req: Request) {
         WHERE created_at >= ${start}
           AND created_at <= ${end}
           AND status = 'COMPLETED'
-          AND payment_status = 'PAID'
           ${storeId ? `AND store_id = '${storeId}'` : ''}
-          ${franchiseId ? `AND store_id IN (SELECT id FROM stores WHERE franchise_id = '${franchiseId}')` : ''}
         GROUP BY DATE(created_at)
         ORDER BY date ASC
       `

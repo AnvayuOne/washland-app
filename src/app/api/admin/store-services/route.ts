@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
       store: {
         id: store.id,
         name: store.name,
-        franchiseId: store.franchiseId,
       },
       services: records.map((record) => ({
         id: record.service.id,
