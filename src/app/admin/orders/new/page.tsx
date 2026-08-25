@@ -373,7 +373,7 @@ export default function NewOrderPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} className="order-form-grid" style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '1.5rem' }}>
           {/* Left Column - Form */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Customer Information */}
@@ -807,7 +807,7 @@ export default function NewOrderPage() {
                           </button>
                         </div>
 
-                        <div style={{
+                        <div className="order-item-controls" style={{
                           display: 'grid',
                           gridTemplateColumns: '1fr 1fr',
                           gap: '0.5rem',
@@ -933,6 +933,22 @@ export default function NewOrderPage() {
           </div>
         </form>
       </div>
+      <style jsx>{`
+        .order-form-grid > * {
+          min-width: 0;
+        }
+
+        @media (max-width: 767px) {
+          .order-form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+
+          .order-item-controls {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </StoreAdminLayout>
   )
 }

@@ -137,17 +137,23 @@ export default function HomePage() {
               Experience the difference with our premium cleaning services, cutting-edge technology, and customer-first approach.
             </p>
           </div>
-          
-          <div className="stagger" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '4rem' }}>
+
+          <div
+            className="stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+            style={{
+              gap: '1rem',
+              marginBottom: '4rem',
+            }}
+          >
             <div className="card fade-in" style={{ textAlign: 'center', padding: '1rem', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', animationDelay: '80ms' }}>
-              <div style={{ 
-                width: '3rem', 
-                height: '3rem', 
-                backgroundColor: '#1e40af', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                backgroundColor: '#1e40af',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 margin: '0 auto 1rem',
                 boxShadow: '0 4px 6px rgba(30, 64, 175, 0.3)'
               }}>
@@ -165,14 +171,14 @@ export default function HomePage() {
             </div>
 
             <div className="card fade-in" style={{ textAlign: 'center', padding: '1rem', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', animationDelay: '160ms' }}>
-              <div style={{ 
-                width: '3rem', 
-                height: '3rem', 
-                backgroundColor: '#059669', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                backgroundColor: '#059669',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 margin: '0 auto 1rem',
                 boxShadow: '0 4px 6px rgba(5, 150, 105, 0.3)'
               }}>
@@ -184,20 +190,20 @@ export default function HomePage() {
               <p style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.4' }}>
                 Convenient pickup and delivery service at your doorstep. Schedule online and track your items in real-time.
               </p>
-                <div style={{ marginTop: '0.75rem', padding: '0.25rem 0.5rem', backgroundColor: '#ecfdf5', borderRadius: '0.25rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500' }}>
+              <div style={{ marginTop: '0.75rem', padding: '0.25rem 0.5rem', backgroundColor: '#ecfdf5', borderRadius: '0.25rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500' }}>
                 🚚 Free within 12 km
               </div>
             </div>
 
             <div className="card fade-in" style={{ textAlign: 'center', padding: '1rem', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', animationDelay: '240ms' }}>
-              <div style={{ 
-                width: '3rem', 
-                height: '3rem', 
-                backgroundColor: '#dc2626', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                backgroundColor: '#dc2626',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 margin: '0 auto 1rem',
                 boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)'
               }}>
@@ -215,14 +221,14 @@ export default function HomePage() {
             </div>
 
             <div className="card fade-in" style={{ textAlign: 'center', padding: '1rem', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', animationDelay: '320ms' }}>
-              <div style={{ 
-                width: '3rem', 
-                height: '3rem', 
-                backgroundColor: '#7c3aed', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                backgroundColor: '#7c3aed',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 margin: '0 auto 1rem',
                 boxShadow: '0 4px 6px rgba(124, 58, 237, 0.3)'
               }}>
@@ -252,15 +258,15 @@ export default function HomePage() {
                 { step: '3', icon: '🏠', title: 'We Deliver Fresh & Folded', desc: 'Once cleaned and neatly folded, your clothes are delivered back to you — fresh, pressed, and ready to wear.' }
               ].map((item, index) => (
                 <div key={index} style={{ position: 'relative', textAlign: 'center' }}>
-                  <div style={{ 
-                    width: '4rem', 
-                    height: '4rem', 
-                    backgroundColor: '#1e40af', 
-                    color: 'white', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                  <div style={{
+                    width: '4rem',
+                    height: '4rem',
+                    backgroundColor: '#1e40af',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     margin: '0 auto 1.5rem',
                     fontWeight: '700',
                     fontSize: '1.25rem',
@@ -288,12 +294,12 @@ export default function HomePage() {
               Flexible pricing options to suit your cleaning needs. Save more with our monthly subscriptions.
             </p>
           </div>
-          
+
           <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', marginBottom: '3rem' }}>
             {/* Basic Plan */}
-            <div className="card fade-in" style={{ 
-              padding: '2rem', 
-              border: '2px solid #e5e7eb', 
+            <div className="card fade-in" style={{
+              padding: '2rem',
+              border: '2px solid #e5e7eb',
               position: 'relative',
               backgroundColor: 'white',
               transition: 'transform 0.2s, box-shadow 0.2s'
@@ -304,12 +310,12 @@ export default function HomePage() {
                 </h3>
                 <p style={{ color: '#6b7280', fontSize: '1rem' }}>Perfect for occasional cleaning needs</p>
               </div>
-              
+
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '3rem', fontWeight: '700', color: '#1e40af' }}>₹12,000</span>
                 <span style={{ fontSize: '1.125rem', color: '#6b7280' }}>/item</span>
               </div>
-              
+
               <ul style={{ marginBottom: '2rem', listStyle: 'none', padding: 0 }}>
                 {[
                   'Professional dry cleaning',
@@ -318,9 +324,9 @@ export default function HomePage() {
                   'Basic stain treatment',
                   'Online order tracking'
                 ].map((feature, index) => (
-                  <li key={index} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <li key={index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     marginBottom: '0.75rem',
                     fontSize: '1rem',
                     color: '#374151'
@@ -332,7 +338,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              
+
               <button className="btn-animate" style={{
                 width: '100%',
                 padding: '0.875rem 1.5rem',
@@ -345,33 +351,33 @@ export default function HomePage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              onMouseOver={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = '#1e40af';
-                target.style.color = 'white';
-              }}
-              onMouseOut={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = 'white';
-                target.style.color = '#1e40af';
-              }}>
+                onMouseOver={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = '#1e40af';
+                  target.style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = 'white';
+                  target.style.color = '#1e40af';
+                }}>
                 Get Started
               </button>
             </div>
 
             {/* Premium Plan */}
-            <div className="card fade-in" style={{ 
-              padding: '2rem', 
-              border: '2px solid #1e40af', 
+            <div className="card fade-in" style={{
+              padding: '2rem',
+              border: '2px solid #1e40af',
               position: 'relative',
               backgroundColor: 'white',
               transform: 'scale(1.05)',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}>
-              <div style={{ 
-                position: 'absolute', 
-                top: '-12px', 
-                left: '50%', 
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                left: '50%',
                 transform: 'translateX(-50%)',
                 backgroundColor: '#1e40af',
                 color: 'white',
@@ -382,14 +388,14 @@ export default function HomePage() {
               }}>
                 MOST POPULAR
               </div>
-              
+
               <div style={{ marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
                   Monthly Unlimited
                 </h3>
                 <p style={{ color: '#6b7280', fontSize: '1rem' }}>Best value for regular customers</p>
               </div>
-              
+
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '3rem', fontWeight: '700', color: '#1e40af' }}>₹7,500</span>
                 <span style={{ fontSize: '1.125rem', color: '#6b7280' }}>/month</span>
@@ -397,7 +403,7 @@ export default function HomePage() {
                   Save up to 40% vs pay-per-item
                 </div>
               </div>
-              
+
               <ul style={{ marginBottom: '2rem', listStyle: 'none', padding: 0 }}>
                 {[
                   'Unlimited dry cleaning items',
@@ -408,9 +414,9 @@ export default function HomePage() {
                   'Online order tracking',
                   'Special occasion rush service'
                 ].map((feature, index) => (
-                  <li key={index} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <li key={index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     marginBottom: '0.75rem',
                     fontSize: '1rem',
                     color: '#374151'
@@ -422,7 +428,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              
+
               <button className="btn-animate" style={{
                 width: '100%',
                 padding: '0.875rem 1.5rem',
@@ -435,24 +441,24 @@ export default function HomePage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              onMouseOver={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = '#1d4ed8';
-                target.style.transform = 'translateY(-2px)';
-              }}
-              onMouseOut={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = '#1e40af';
-                target.style.transform = 'translateY(0)';
-              }}>
+                onMouseOver={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = '#1d4ed8';
+                  target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseOut={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = '#1e40af';
+                  target.style.transform = 'translateY(0)';
+                }}>
                 Start Free Trial
               </button>
             </div>
 
             {/* Family Plan */}
-            <div className="card fade-in" style={{ 
-              padding: '2rem', 
-              border: '2px solid #e5e7eb', 
+            <div className="card fade-in" style={{
+              padding: '2rem',
+              border: '2px solid #e5e7eb',
               position: 'relative',
               backgroundColor: 'white',
               transition: 'transform 0.2s, box-shadow 0.2s'
@@ -463,7 +469,7 @@ export default function HomePage() {
                 </h3>
                 <p style={{ color: '#6b7280', fontSize: '1rem' }}>Perfect for households of 4+ people</p>
               </div>
-              
+
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '3rem', fontWeight: '700', color: '#1e40af' }}>₹13,500</span>
                 <span style={{ fontSize: '1.125rem', color: '#6b7280' }}>/month</span>
@@ -471,7 +477,7 @@ export default function HomePage() {
                   Covers up to 6 family members
                 </div>
               </div>
-              
+
               <ul style={{ marginBottom: '2rem', listStyle: 'none', padding: 0 }}>
                 {[
                   'Unlimited items for 6 people',
@@ -483,9 +489,9 @@ export default function HomePage() {
                   'Holiday & event rush service',
                   'Garment care consultation'
                 ].map((feature, index) => (
-                  <li key={index} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <li key={index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     marginBottom: '0.75rem',
                     fontSize: '1rem',
                     color: '#374151'
@@ -497,7 +503,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              
+
               <button className="btn-animate" style={{
                 width: '100%',
                 padding: '0.875rem 1.5rem',
@@ -510,16 +516,16 @@ export default function HomePage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              onMouseOver={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = '#1e40af';
-                target.style.color = 'white';
-              }}
-              onMouseOut={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.backgroundColor = 'white';
-                target.style.color = '#1e40af';
-              }}>
+                onMouseOver={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = '#1e40af';
+                  target.style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = 'white';
+                  target.style.color = '#1e40af';
+                }}>
                 Contact Sales
               </button>
             </div>
@@ -529,7 +535,7 @@ export default function HomePage() {
             <p style={{ color: '#6b7280', fontSize: '1rem', marginBottom: '1rem' }}>
               💡 <strong>New customers:</strong> Get your first month 50% off any subscription plan!
             </p>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
               All plans include free pickup & delivery within 12 km. No contracts, cancel anytime.
             </p>
             <div style={{ marginTop: '0.75rem' }}>
@@ -552,9 +558,9 @@ export default function HomePage() {
               Comprehensive cleaning solutions for all your needs
             </p>
           </div>
-          
+
           <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-              {((pricingLoading ? Array.from({ length: 6 }) : (pricing ?? defaultPricing.slice(0, 6)))).map((service: any, index: number) => {
+            {((pricingLoading ? Array.from({ length: 6 }) : (pricing ?? defaultPricing.slice(0, 6)))).map((service: any, index: number) => {
               const key = service?.id ?? `svc-${index}`
               const name = service?.title ?? service?.name ?? 'Service'
               const desc = service?.description ?? ''
@@ -739,8 +745,8 @@ export default function HomePage() {
             Join thousands of satisfied customers. Book your first service today!
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link 
-              href="/auth/signup" 
+            <Link
+              href="/auth/signup"
               style={{
                 backgroundColor: 'white',
                 color: '#1e40af',
@@ -753,8 +759,8 @@ export default function HomePage() {
             >
               Sign Up Now
             </Link>
-            <Link 
-              href="/book-service" 
+            <Link
+              href="/book-service"
               style={{
                 backgroundColor: 'transparent',
                 color: 'white',
@@ -915,7 +921,16 @@ export default function HomePage() {
             Get a tailored quote for your business laundry needs. We offer customized solutions for hotels, restaurants, offices, and more.
           </p>
 
-          <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '3rem', maxWidth: '48rem', marginLeft: 'auto', marginRight: 'auto' }}>
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3"
+            style={{
+              gap: '2rem',
+              marginBottom: '3rem',
+              maxWidth: '48rem',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
             <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', backdropFilter: 'blur(10px)' }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏨</div>
               <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: 'white', marginBottom: '0.5rem' }}>Hotels & Hospitality</h3>
@@ -974,17 +989,17 @@ export default function HomePage() {
           <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', marginBottom: '2rem' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <Image 
-                  src="/logo2.png" 
-                  alt="Washland Logo" 
-                  width={32} 
+                <Image
+                  src="/logo2.png"
+                  alt="Washland Logo"
+                  width={32}
                   height={32}
                   style={{ marginRight: '0.75rem' }}
                 />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>Washland</h3>
               </div>
               <p style={{ color: '#9ca3af', fontSize: '0.875rem', lineHeight: '1.6' }}>
-                Premium dry cleaning and laundry services with convenient pickup & delivery.
+                Premium dry cleaning and laundry services with convenient pickup & delivery across multiple franchise locations.
               </p>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <a href="#" style={{ color: '#9ca3af', fontSize: '1.25rem' }} title="Facebook">📘</a>
@@ -1009,6 +1024,8 @@ export default function HomePage() {
               <h4 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '1rem' }}>Company</h4>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 <li style={{ marginBottom: '0.5rem' }}><a href="#about" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>About Us</a></li>
+                <li style={{ marginBottom: '0.5rem' }}><a href="#locations" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Locations</a></li>
+                <li style={{ marginBottom: '0.5rem' }}><a href="/franchise" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Franchise</a></li>
                 <li style={{ marginBottom: '0.5rem' }}><a href="/contact" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>Contact</a></li>
               </ul>
             </div>

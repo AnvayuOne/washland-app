@@ -58,7 +58,7 @@ export default function Header() {
   const shouldShowPublicNav = () => {
     const rawRole = (session?.user?.role ?? localRole ?? '') as string
     const role = rawRole.toString().trim().toLowerCase()
-    
+
     // Show public nav if:
     // 1. No session and no local role (not logged in)
     // 2. Role is customer/user
@@ -159,44 +159,55 @@ export default function Header() {
           {/* Center Navigation - Main menu items */}
           {shouldShowPublicNav() && (
             <nav className={styles.navLeft}>
-            {!isLoggedIn && (
-              <>
-                <Link href="/pricing" className={styles.navItem}>
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                  <span>Pricing</span>
-                </Link>
-              </>
-            )}
+              {!isLoggedIn && (
+                <>
+                  <Link href="/pricing" className={styles.navItem}>
+                    <svg
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      className={styles.pricingIcon}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.2}
+                        d="M12 3v18M16.5 7.5c0-1.7-1.7-3-4.5-3s-4.5 1.3-4.5 3 1.5 2.7 4.5 3.5 4.5 1.8 4.5 3.5-1.7 3-4.5 3-4.5-1.3-4.5-3"
+                      />
+                    </svg>
+                    <span>Pricing</span>
+                  </Link>
+                </>
+              )}
 
-            <Link href="/book-service" className={`${styles.navItem} ${styles.bookNowButton}`}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Book Now</span>
-            </Link>
+              <Link href="/book-service" className={`${styles.navItem} ${styles.bookNowButton}`}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Book Now</span>
+              </Link>
 
-            <a 
-              href="https://api.whatsapp.com/send/?phone=919888477748&text&type=phone_number&app_absent=0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${styles.navItem} ${styles.whatsappButton}`}
-            >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span>Book via WhatsApp</span>
-            </a>
-          </nav>
+              <a
+                href="https://api.whatsapp.com/send/?phone=919888477748&text&type=phone_number&app_absent=0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${styles.navItem} ${styles.whatsappButton}`}
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Book via WhatsApp</span>
+              </a>
+            </nav>
           )}
 
           {/* Right Navigation - Auth buttons */}
           <nav className={styles.navRight}>
             {/* Dashboard button - visible when user is signed in */}
             {(session || localRole) && (
-              <button 
-                onClick={openDashboard} 
+              <button
+                onClick={openDashboard}
                 className={`${styles.navItem} ${styles.dashboardButton}`}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,8 +219,8 @@ export default function Header() {
 
             {/* Sign in / Sign out */}
             {session || localRole ? (
-              <button 
-                onClick={handleSignOut} 
+              <button
+                onClick={handleSignOut}
                 className={`${styles.navItem} ${styles.signOutButton}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">

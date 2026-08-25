@@ -1,6 +1,7 @@
 "use client"
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import DashboardSidebar from './DashboardSidebar'
 
 interface DashboardLayoutProps {
@@ -19,12 +20,18 @@ export default function DashboardLayout({
   onSignOut = () => {} 
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname()
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed)
   }
   return (
-    <div style={{ 
+    <div className="dashboard-shell" style={{ 
       display: 'flex', 
       minHeight: '100vh',
       overflow: 'visible' // Allow tooltips to extend outside
@@ -37,10 +44,12 @@ export default function DashboardLayout({
         onSignOut={onSignOut}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
+        mobileOpen={mobileOpen}
+        onToggleMobile={() => setMobileOpen((open) => !open)}
       />
       
       {/* Main Content */}
-      <div style={{
+      <div className="dashboard-main" style={{
         flex: 1,
         marginLeft: isCollapsed ? '80px' : '280px',
         backgroundColor: '#f9fafb',
@@ -49,7 +58,7 @@ export default function DashboardLayout({
         overflow: 'visible' // Allow tooltips to be visible
       }}>
         {/* Header Bar */}
-        <div style={{
+        <div className="dashboard-header" style={{
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e7eb',
           padding: '1rem 1.5rem',
@@ -61,7 +70,18 @@ export default function DashboardLayout({
           justifyContent: 'space-between',
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
         }}>
-          <div>
+          <div className="dashboard-header-title">
+            <button
+              type="button"
+              className="dashboard-mobile-menu"
+              aria-label="Open navigation"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((open) => !open)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
             <h2 style={{ 
               margin: 0, 
               fontSize: '1.5rem', 
@@ -77,7 +97,7 @@ export default function DashboardLayout({
             </h2>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="dashboard-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {/* User info */}
             <div style={{ 
               display: 'flex', 
@@ -140,10 +160,87 @@ export default function DashboardLayout({
         </div>
         
         {/* Page Content */}
-        <div style={{ padding: '1.5rem' }}>
+        <div className="dashboard-page-content" style={{ padding: '1.5rem' }}>
           {children}
         </div>
       </div>
+      <style jsx>{`
+        .dashboard-mobile-menu {
+          display: none;
+        }
+
+        @media (max-width: 767px) {
+          .dashboard-main {
+            margin-left: 0 !important;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .dashboard-header {
+            padding: 0.75rem 1rem !important;
+            min-height: 64px;
+          }
+
+          .dashboard-header-title {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .dashboard-header-title h2 {
+            font-size: 1.05rem !important;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .dashboard-mobile-menu {
+            display: inline-flex;
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+          }
+
+          .dashboard-mobile-menu span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            border-radius: 2px;
+            background: #1e40af;
+          }
+
+          .dashboard-header-actions {
+            gap: 0.5rem !important;
+            min-width: 0;
+          }
+
+          .dashboard-header-actions > div:first-child {
+            padding: 0.4rem !important;
+            border: 0 !important;
+            background: transparent !important;
+          }
+
+          .dashboard-header-actions > div:first-child > div:last-child {
+            display: none;
+          }
+
+          .dashboard-page-content {
+            padding: 1rem !important;
+            min-width: 0;
+          }
+        }
+      `}</style>
     </div>
   )
 }
