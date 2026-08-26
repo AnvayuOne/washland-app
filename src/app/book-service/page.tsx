@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
+import { useCurrentLocation } from '@/hooks/useCurrentLocation'
 
 interface CatalogService {
   id: string
@@ -18,6 +19,9 @@ interface CatalogService {
 
 export default function BookServicePage() {
   const router = useRouter()
+  const { fetchLocation: fetchPickupLocation, loading: pickupLocationLoading, error: pickupLocationError } = useCurrentLocation()
+  const { fetchLocation: fetchDeliveryLocation, loading: deliveryLocationLoading, error: deliveryLocationError } = useCurrentLocation()
+  const [sameAsPickup, setSameAsPickup] = useState(false)
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [addingItemByService, setAddingItemByService] = useState<Record<string, boolean>>({})
   const [cartNotice, setCartNotice] = useState<string | null>(null)
@@ -553,6 +557,53 @@ export default function BookServicePage() {
                   }}
                   required
                 />
+
+                {/* Use Current Location button */}
+                <button
+                  type="button"
+                  disabled={pickupLocationLoading}
+                  onClick={async () => {
+                    const loc = await fetchPickupLocation()
+                    if (loc) {
+                      const full = [loc.address, loc.city, loc.state, loc.pincode].filter(Boolean).join(', ')
+                      setFormData(prev => ({ ...prev, pickupAddress: full }))
+                      if (sameAsPickup) {
+                        setFormData(prev => ({ ...prev, pickupAddress: full, deliveryAddress: full }))
+                      }
+                    }
+                  }}
+                  style={{
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.9rem',
+                    backgroundColor: pickupLocationLoading ? '#e5e7eb' : '#eff6ff',
+                    color: pickupLocationLoading ? '#9ca3af' : '#2563eb',
+                    border: '1.5px solid',
+                    borderColor: pickupLocationLoading ? '#d1d5db' : '#bfdbfe',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: '500',
+                    cursor: pickupLocationLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {pickupLocationLoading ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block', width: 12, height: 12,
+                        border: '2px solid #9ca3af', borderTopColor: '#2563eb',
+                        borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                      }} />
+                      Detecting...
+                    </>
+                  ) : (
+                    <><span>📍</span> Use Current Location</>
+                  )}
+                </button>
+                {pickupLocationError && (
+                  <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: '#dc2626' }}>⚠️ {pickupLocationError}</p>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div>
@@ -617,27 +668,96 @@ export default function BookServicePage() {
               Delivery Information
             </h2>
             <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                Delivery Address
+              {/* Same as Pickup toggle */}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                fontSize: '0.875rem', fontWeight: '500', color: '#374151',
+                marginBottom: '0.75rem', cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={sameAsPickup}
+                  onChange={(e) => {
+                    setSameAsPickup(e.target.checked)
+                    if (e.target.checked) {
+                      setFormData(prev => ({ ...prev, deliveryAddress: prev.pickupAddress }))
+                    }
+                  }}
+                />
+                Same as Pickup Address
               </label>
-              <input
-                type="text"
-                name="deliveryAddress"
-                value={formData.deliveryAddress}
-                onChange={handleInputChange}
-                placeholder="Same as pickup address or enter different address"
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.5rem",
-                  outline: "none",
-                  boxSizing: "border-box"
-                }}
-              />
-              <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
-                Leave blank to use the same address as pickup
-              </p>
+
+              {!sameAsPickup && (
+                <>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
+                    Delivery Address
+                  </label>
+                  <input
+                    type="text"
+                    name="deliveryAddress"
+                    value={formData.deliveryAddress}
+                    onChange={handleInputChange}
+                    placeholder="Enter delivery address"
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "0.5rem",
+                      outline: "none",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                  {/* Use Current Location for delivery */}
+                  <button
+                    type="button"
+                    disabled={deliveryLocationLoading}
+                    onClick={async () => {
+                      const loc = await fetchDeliveryLocation()
+                      if (loc) {
+                        const full = [loc.address, loc.city, loc.state, loc.pincode].filter(Boolean).join(', ')
+                        setFormData(prev => ({ ...prev, deliveryAddress: full }))
+                      }
+                    }}
+                    style={{
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.45rem 0.9rem',
+                      backgroundColor: deliveryLocationLoading ? '#e5e7eb' : '#eff6ff',
+                      color: deliveryLocationLoading ? '#9ca3af' : '#2563eb',
+                      border: '1.5px solid',
+                      borderColor: deliveryLocationLoading ? '#d1d5db' : '#bfdbfe',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: '500',
+                      cursor: deliveryLocationLoading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {deliveryLocationLoading ? (
+                      <>
+                        <span style={{
+                          display: 'inline-block', width: 12, height: 12,
+                          border: '2px solid #9ca3af', borderTopColor: '#2563eb',
+                          borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                        }} />
+                        Detecting...
+                      </>
+                    ) : (
+                      <><span>📍</span> Use Current Location</>
+                    )}
+                  </button>
+                  {deliveryLocationError && (
+                    <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: '#dc2626' }}>⚠️ {deliveryLocationError}</p>
+                  )}
+                </>
+              )}
+
+              {sameAsPickup && formData.pickupAddress && (
+                <p style={{ fontSize: '0.82rem', color: '#059669', marginTop: '0.25rem' }}>
+                  ✓ Delivery to: {formData.pickupAddress}
+                </p>
+              )}
             </div>
           </div>
 
