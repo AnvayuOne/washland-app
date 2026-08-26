@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
+import { useCurrentLocation } from '@/hooks/useCurrentLocation'
 
 interface Address {
   id: string
@@ -27,6 +28,7 @@ export default function CustomerAddressesPage() {
   const [userName, setUserName] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
+  const { fetchLocation, loading: locationLoading, error: locationError } = useCurrentLocation()
   
   // Form fields
   const [type, setType] = useState<'HOME' | 'WORK' | 'OTHER'>('HOME')
@@ -313,6 +315,76 @@ export default function CustomerAddressesPage() {
             </div>
 
             <form onSubmit={handleSubmit}>
+
+              {/* ── Use Current Location ── */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <button
+                  type="button"
+                  disabled={locationLoading}
+                  onClick={async () => {
+                    const loc = await fetchLocation()
+                    if (loc) {
+                      setAddress(loc.address)
+                      setCity(loc.city)
+                      setState(loc.state)
+                      setPincode(loc.pincode)
+                      if (loc.landmark) setLandmark(loc.landmark)
+                      toast.success('Location detected', 'Address fields filled from your current location')
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.625rem 1.25rem',
+                    backgroundColor: locationLoading ? '#e5e7eb' : '#eff6ff',
+                    color: locationLoading ? '#9ca3af' : '#2563eb',
+                    border: '1.5px solid',
+                    borderColor: locationLoading ? '#d1d5db' : '#bfdbfe',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: locationLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    width: '100%',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {locationLoading ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '14px',
+                        height: '14px',
+                        border: '2px solid #9ca3af',
+                        borderTopColor: '#2563eb',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                      }} />
+                      Detecting location...
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '1rem' }}>📍</span>
+                      Use Current Location
+                    </>
+                  )}
+                </button>
+
+                {locationError && (
+                  <p style={{
+                    marginTop: '0.5rem',
+                    fontSize: '0.8rem',
+                    color: '#dc2626',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.35rem',
+                  }}>
+                    <span>⚠️</span> {locationError}
+                  </p>
+                )}
+              </div>
+
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ 
                   display: 'block', 
