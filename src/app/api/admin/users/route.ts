@@ -12,7 +12,6 @@ const userResponseSelect = {
   phone: true,
   role: true,
   isActive: true,
-  storeId: true,
   createdAt: true,
   updatedAt: true,
   managedStores: {

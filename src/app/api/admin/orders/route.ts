@@ -118,16 +118,7 @@ export async function GET(request: NextRequest) {
                 phone: true
               }
             },
-            store: {
-              include: {
-                franchise: {
-                  select: {
-                    id: true,
-                    name: true
-                  }
-                }
-              }
-            },
+            store: true,
             address: true,
             items: {
               include: {
@@ -372,16 +363,7 @@ export async function POST(request: NextRequest) {
               phone: true
             }
           },
-          store: {
-            include: {
-              franchise: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          },
+          store: true,
           address: true,
           items: {
             include: {
@@ -402,7 +384,6 @@ export async function POST(request: NextRequest) {
           totalAmount: order.totalAmount,
           storeId: order.storeId,
           storeName: order.store.name,
-          franchiseName: order.store.franchise.name,
           customerName: order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Walk-in Customer'
         }
       })

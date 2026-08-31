@@ -1,5 +1,6 @@
 "use client"
 
+import Link from 'next/link'
 import { useState } from "react"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -87,12 +88,12 @@ export default function SignInPage() {
             <p className="text-gray-600 mt-2">Welcome back — sign in to continue</p>
           </div>
 
-          </div>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8l8.5 5L20 8" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8l8.5 5L20 8" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               Email
             </label>
             <input
@@ -114,7 +115,7 @@ export default function SignInPage() {
 
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 11V8a5 5 0 0110 0v3" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 11V8a5 5 0 0110 0v3" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               Password
             </label>
             <input
@@ -133,7 +134,7 @@ export default function SignInPage() {
               required
             />
             <div style={{ textAlign: 'right', marginTop: 8 }}>
-              <a href="#" style={{ fontSize: '0.875rem', color: '#1e40af', textDecoration: 'none' }}>Forgot password?</a>
+              <a href="/auth/forgot-password" style={{ fontSize: '0.875rem', color: '#1e40af', textDecoration: 'none' }}>Forgot password?</a>
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { apiError, apiSuccess } from "@/lib/api-response"
 import { toSubscriptionResponse } from "@/lib/subscription-utils"
+import { getPrimaryStoreId } from "@/lib/tenant"
 
 function addRenewDate(startAt: Date, cycle: BillingCycle) {
   const renewAt = new Date(startAt)
@@ -104,9 +105,12 @@ export async function POST(request: NextRequest) {
       return apiError("Requested store does not match the plan scope", 400)
     }
 
-    const resolvedStoreId = plan.storeId ?? requestedStoreId
+    let resolvedStoreId = plan.storeId ?? requestedStoreId
     if (!resolvedStoreId) {
-      return apiError("storeId is required for plans without store scope", 400)
+      resolvedStoreId = await getPrimaryStoreId().catch(() => null)
+    }
+    if (!resolvedStoreId) {
+      return apiError("No active store available for this plan", 400)
     }
 
     const store = await prisma.store.findFirst({

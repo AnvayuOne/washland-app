@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
+import { useSession } from 'next-auth/react'
 
 interface UserProfile {
   id: string
@@ -17,6 +18,7 @@ interface UserProfile {
 export default function CustomerProfilePage() {
   const router = useRouter()
   const toast = useToast()
+  const { data: session, status } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -32,25 +34,23 @@ export default function CustomerProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || ''
-    const name = localStorage.getItem('userName') || 'Customer'
-    setUserEmail(email)
-    setUserName(name)
-    
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated' || session?.user?.role !== 'CUSTOMER') {
+      router.push('/auth/signin')
+      return
+    }
+
+    if (session?.user) {
+      setUserEmail(session.user.email || '')
+      setUserName(session.user.firstName ? `${session.user.firstName} ${session.user.lastName}` : 'Customer')
+    }
+
     fetchProfile()
-  }, [])
+  }, [status, session, router])
 
   const fetchProfile = async () => {
     try {
-      const userId = localStorage.getItem('userId')
-      const userRole = localStorage.getItem('userRole')
-      const userEmail = localStorage.getItem('userEmail')
-
-      if (!userId || userRole !== 'CUSTOMER') {
-        router.push('/auth/signin')
-        return
-      }
-
       const response = await fetch('/api/customer/profile', {
         headers: {
         }

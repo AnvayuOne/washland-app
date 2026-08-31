@@ -89,13 +89,6 @@ export async function PATCH(
           { status: 400 }
         )
       }
-
-      if (effective.record.franchiseConfig && !effective.record.franchiseConfig.isActive) {
-        return NextResponse.json(
-          { success: false, error: "Cannot enable a franchise-disabled service at store level" },
-          { status: 400 }
-        )
-      }
     }
 
     if (clearOverride) {

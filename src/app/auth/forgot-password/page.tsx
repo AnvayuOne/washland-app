@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+import Image from 'next/image'
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -40,71 +42,74 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
+    <div className="min-h-screen flex items-center justify-center" style={{ position: 'relative', overflow: 'visible' }}>
+      <div className="card" style={{ maxWidth: "420px", width: "100%", position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="text-center mb-6" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <Image src="/logo.png" alt="Washland" width={140} height={56} style={{ objectFit: 'contain' }} />
+            <p className="text-gray-600 mt-2">Reset your password</p>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email address
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8l8.5 5L20 8" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Email
             </label>
             <input
-              id="email"
-              name="email"
               type="email"
-              autoComplete="email"
-              required
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Email address"
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="input-field"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                outline: "none"
+              }}
+              required
             />
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+              {error}
             </div>
           )}
 
           {message && (
-            <div className="rounded-md bg-green-50 p-4">
-              <div className="text-sm text-green-700">{message}</div>
+            <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded">
+              {message}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Sending...' : 'Send reset link'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Back to sign in
-            </Link>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn-primary"
+            style={{
+              width: "100%",
+              backgroundColor: isLoading ? "#9ca3af" : "#1e40af",
+              color: "white",
+              fontWeight: "500",
+              padding: "0.75rem 2rem",
+              borderRadius: "0.5rem",
+              border: "none",
+              cursor: isLoading ? "not-allowed" : "pointer"
+            }}
+          >
+            {isLoading ? "Sending..." : "Send Reset Link"}
+          </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/auth/signin" style={{ fontSize: '0.875rem', color: '#1e40af', textDecoration: 'none' }}>
+            Back to sign in
+          </Link>
+        </div>
       </div>
     </div>
   )

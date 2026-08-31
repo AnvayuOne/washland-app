@@ -47,12 +47,9 @@ type Address = {
 
 export default function CustomerCartPage() {
   const [cart, setCart] = useState<Cart | null>(null)
-  const [stores, setStores] = useState<Store[]>([])
   const [addresses, setAddresses] = useState<Address[]>([])
-  const [selectedStoreId, setSelectedStoreId] = useState("")
   const [selectedAddressId, setSelectedAddressId] = useState("")
   const [loading, setLoading] = useState(true)
-  const [savingStore, setSavingStore] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState("")
@@ -65,7 +62,7 @@ export default function CustomerCartPage() {
   }, [])
 
   const cartHasItems = (cart?.items.length || 0) > 0
-  const canContinue = cartHasItems && Boolean(cart?.storeId) && Boolean(selectedAddressId)
+  const canContinue = cartHasItems && Boolean(selectedAddressId)
 
   const currencySymbol = useMemo(() => (cart?.currency === "INR" ? "Rs" : cart?.currency || ""), [cart?.currency])
 
@@ -77,13 +74,9 @@ export default function CustomerCartPage() {
       const userEmail = localStorage.getItem("userEmail") || ""
       const userRole = localStorage.getItem("userRole") || ""
 
-      const [cartRes, storesRes, addressesRes] = await Promise.all([
-        fetch("/api/customer/cart"),
-        fetch("/api/public/stores"),
-        fetch("/api/customer/addresses", {
-          headers: {
-          },
-        }),
+      const [cartRes, addressesRes] = await Promise.all([
+        fetch("/api/customer/cart", { credentials: 'include' }),
+        fetch("/api/customer/addresses", { credentials: 'include' }),
       ])
 
       if (cartRes.status === 401) {
@@ -97,12 +90,9 @@ export default function CustomerCartPage() {
         return
       }
 
-      const storesData = storesRes.ok ? await storesRes.json() : []
       const addressesData = addressesRes.ok ? await addressesRes.json() : { addresses: [] }
       const nextCart = cartData.cart as Cart | null
       setCart(nextCart)
-      setSelectedStoreId(nextCart?.storeId || "")
-      setStores(Array.isArray(storesData) ? storesData : [])
       const parsedAddresses = Array.isArray(addressesData?.addresses) ? addressesData.addresses : []
       setAddresses(parsedAddresses)
 
@@ -148,32 +138,7 @@ export default function CustomerCartPage() {
     setCart(data.cart)
   }
 
-  const saveStoreSelection = async () => {
-    if (!selectedStoreId) return
-    setSavingStore(true)
-    setError(null)
 
-    try {
-      const response = await fetch("/api/customer/cart/select-store", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId: selectedStoreId }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        setError(data.error || "Failed to select store")
-        return
-      }
-
-      setCart(data.cart)
-    } catch (saveError) {
-      console.error("Error saving cart store:", saveError)
-      setError("Failed to select store")
-    } finally {
-      setSavingStore(false)
-    }
-  }
 
   const getCheckoutStorageKey = () => (cart?.id ? `checkout_idempotency_${cart.id}` : "")
 
@@ -209,6 +174,7 @@ export default function CustomerCartPage() {
           idempotencyKey,
           addressId: selectedAddressId,
         }),
+        credentials: 'include',
       })
 
       const data = await response.json()
@@ -289,26 +255,7 @@ export default function CustomerCartPage() {
               ))}
             </div>
 
-            <div style={{ backgroundColor: "white", borderRadius: "0.75rem", border: "1px solid #e5e7eb", padding: "1rem" }}>
-              <div style={{ marginBottom: "0.75rem", fontWeight: 600, color: "#111827" }}>Select Store</div>
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                <select
-                  value={selectedStoreId}
-                  onChange={(e) => setSelectedStoreId(e.target.value)}
-                  style={{ flex: 1, padding: "0.55rem", border: "1px solid #d1d5db", borderRadius: "0.5rem" }}
-                >
-                  <option value="">Choose a store</option>
-                  {stores.map((store) => (
-                    <option key={store.id} value={store.id}>
-                      {store.name} {store.city ? `(${store.city}${store.state ? `, ${store.state}` : ""})` : ""}
-                    </option>
-                  ))}
-                </select>
-                <button onClick={saveStoreSelection} disabled={!selectedStoreId || savingStore} style={{ padding: "0.55rem 0.85rem", border: "none", borderRadius: "0.5rem", backgroundColor: savingStore ? "#93c5fd" : "#2563eb", color: "white", fontWeight: 600, cursor: savingStore ? "not-allowed" : "pointer" }}>
-                  {savingStore ? "Saving..." : "Save Store"}
-                </button>
-              </div>
-            </div>
+
 
             <div style={{ backgroundColor: "white", borderRadius: "0.75rem", border: "1px solid #e5e7eb", padding: "1rem" }}>
               <div style={{ marginBottom: "0.75rem", fontWeight: 600, color: "#111827" }}>Delivery Address</div>

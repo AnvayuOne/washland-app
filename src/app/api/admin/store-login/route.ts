@@ -107,16 +107,6 @@ export async function POST(request: NextRequest) {
     const requestedStore = await prisma.store.findUnique({
       where: { id: storeId },
       include: {
-        franchise: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        },
         admin: {
           select: {
             id: true,
@@ -191,7 +181,6 @@ export async function POST(request: NextRequest) {
       storeId: requestedStore.id,
       storeName: requestedStore.name,
       storeCity: requestedStore.city,
-      franchiseName: requestedStore.franchise.name,
       accessReason
     }
 

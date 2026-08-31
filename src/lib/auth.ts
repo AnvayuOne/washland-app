@@ -60,7 +60,7 @@ export const authOptions: NextAuthOptions = {
           lastName: user.lastName,
           role: user.role,
           storeId: user.managedStores[0]?.id ?? null,
-          managedStores: user.managedStores
+          managedStoreIds: user.managedStores.map(s => s.id)
         }
       }
     })
@@ -75,7 +75,7 @@ export const authOptions: NextAuthOptions = {
         token.firstName = user.firstName
         token.lastName = user.lastName
         token.storeId = user.storeId
-        token.managedStores = user.managedStores
+        token.managedStoreIds = user.managedStoreIds
       }
       return token
     },
@@ -86,7 +86,7 @@ export const authOptions: NextAuthOptions = {
         session.user.firstName = token.firstName as string
         session.user.lastName = token.lastName as string
         session.user.storeId = (token.storeId as string | null) ?? null
-        session.user.managedStores = token.managedStores as any[]
+        session.user.managedStoreIds = token.managedStoreIds as string[]
       }
       return session
     }

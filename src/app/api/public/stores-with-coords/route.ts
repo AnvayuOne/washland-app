@@ -48,12 +48,7 @@ export async function GET() {
         state: true,
         zipCode: true,
         phone: true,
-        email: true,
-        franchise: {
-          select: {
-            name: true
-          }
-        }
+        email: true
       }
     })
 

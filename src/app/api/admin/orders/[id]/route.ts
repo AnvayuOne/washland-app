@@ -33,16 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               phone: true
             }
           },
-          store: {
-            include: {
-              franchise: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          },
+          store: true,
           address: true,
           items: {
             include: {
@@ -216,16 +207,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
               phone: true
             }
           },
-          store: {
-            include: {
-              franchise: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          },
+          store: true,
           address: true,
           items: {
             include: {
@@ -268,7 +250,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             amount: updatedOrder.totalAmount,
             storeId: updatedOrder.storeId,
             storeName: updatedOrder.store.name,
-            franchiseName: updatedOrder.store.franchise.name,
             customerName: updatedOrder.user ? `${updatedOrder.user.firstName} ${updatedOrder.user.lastName}` : 'Walk-in Customer'
           }
         })
@@ -289,8 +270,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             orderNumber: updatedOrder.orderNumber,
             totalAmount: updatedOrder.totalAmount,
             storeId: updatedOrder.storeId,
-            storeName: updatedOrder.store.name,
-            franchiseName: updatedOrder.store.franchise.name
+            storeName: updatedOrder.store.name
           }
         })
       }

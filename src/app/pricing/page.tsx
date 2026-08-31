@@ -112,8 +112,6 @@ export default function PricingPage() {
   const toast = useToast()
   const [services, setServices] = useState<Service[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
-  const [stores, setStores] = useState<Store[]>([])
-  const [selectedStoreId, setSelectedStoreId] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null)
@@ -124,25 +122,18 @@ export default function PricingPage() {
       setLoading(true)
       setError(null)
       try {
-        const [servicesRes, plansRes, storesRes] = await Promise.all([
+        const [servicesRes, plansRes] = await Promise.all([
           fetch("/api/pricing"),
           fetch("/api/plans"),
-          fetch("/api/public/stores"),
         ])
 
         const servicesData = servicesRes.ok ? await servicesRes.json() : { data: [] }
         const plansData = plansRes.ok ? await plansRes.json() : { data: { plans: [] } }
-        const storesData = storesRes.ok ? await storesRes.json() : []
 
         if (!mounted) return
 
         setServices(Array.isArray(servicesData?.data) ? servicesData.data : [])
         setPlans(Array.isArray(plansData?.data?.plans) ? plansData.data.plans : [])
-        const normalizedStores = Array.isArray(storesData) ? storesData : []
-        setStores(normalizedStores)
-        if (normalizedStores.length > 0) {
-          setSelectedStoreId(normalizedStores[0].id)
-        }
       } catch (fetchError) {
         if (!mounted) return
         const message = String(fetchError)
@@ -160,16 +151,9 @@ export default function PricingPage() {
     }
   }, [])
 
-  const hasGlobalPlans = useMemo(() => plans.some((plan) => !plan.storeId), [plans])
+
 
   const buyPlan = async (plan: Plan) => {
-    const resolvedStoreId = plan.storeId || selectedStoreId
-    if (!resolvedStoreId) {
-      setError("Please select a store before buying a plan.")
-      toast.error("Plans", "Please select a store before buying a plan.")
-      return
-    }
-
     try {
       setBuyingPlanId(plan.id)
       setError(null)
@@ -180,7 +164,7 @@ export default function PricingPage() {
         },
         body: JSON.stringify({
           planId: plan.id,
-          storeId: resolvedStoreId,
+          storeId: plan.storeId || undefined,
           activateNow: false,
         }),
       })
@@ -239,31 +223,7 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {hasGlobalPlans && (
-            <div style={{ maxWidth: "520px", margin: "0 auto 1.25rem auto" }}>
-              <label style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, color: "#374151" }}>
-                Select Store for Global Plans
-              </label>
-              <select
-                value={selectedStoreId}
-                onChange={(e) => setSelectedStoreId(e.target.value)}
-                style={{
-                  width: "100%",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.5rem",
-                  padding: "0.65rem 0.75rem",
-                }}
-              >
-                <option value="">Choose store</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                    {store.city ? ` (${store.city}${store.state ? `, ${store.state}` : ""})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+
 
           {plans.length === 0 ? (
             <div style={{ textAlign: "center", color: "#6b7280", padding: "1.5rem", border: "1px solid #e5e7eb", borderRadius: "0.75rem", backgroundColor: "white" }}>

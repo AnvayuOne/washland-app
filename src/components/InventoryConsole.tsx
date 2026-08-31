@@ -7,6 +7,10 @@ import { useToast } from "@/components/ToastProvider"
 interface StoreOption {
   id: string
   name: string
+  franchise?: {
+    id: string
+    name: string
+  }
 }
 
 interface InventoryItem {
@@ -341,7 +345,7 @@ export default function InventoryConsole({
             <option value="">All Accessible Stores</option>
             {stores.map((store) => (
               <option key={store.id} value={store.id}>
-                {store.name} ({store.franchise.name})
+                {store.name} {store.franchise ? `(${store.franchise.name})` : ''}
               </option>
             ))}
           </select>

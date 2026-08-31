@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
 import { useCurrentLocation } from '@/hooks/useCurrentLocation'
+import { useSession } from 'next-auth/react'
 
 interface Address {
   id: string
@@ -21,6 +22,7 @@ interface Address {
 export default function CustomerAddressesPage() {
   const router = useRouter()
   const toast = useToast()
+  const { data: session, status } = useSession()
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -40,25 +42,23 @@ export default function CustomerAddressesPage() {
   const [isDefault, setIsDefault] = useState(false)
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || ''
-    const name = localStorage.getItem('userName') || 'Customer'
-    setUserEmail(email)
-    setUserName(name)
-    
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated' || session?.user?.role !== 'CUSTOMER') {
+      router.push('/auth/signin')
+      return
+    }
+
+    if (session?.user) {
+      setUserEmail(session.user.email || '')
+      setUserName(session.user.firstName ? `${session.user.firstName} ${session.user.lastName}` : 'Customer')
+    }
+
     fetchAddresses()
-  }, [])
+  }, [status, session, router])
 
   const fetchAddresses = async () => {
     try {
-      const userId = localStorage.getItem('userId')
-      const userRole = localStorage.getItem('userRole')
-      const userEmail = localStorage.getItem('userEmail')
-
-      if (!userId || userRole !== 'CUSTOMER') {
-        router.push('/auth/signin')
-        return
-      }
-
       const response = await fetch('/api/customer/addresses', {
         headers: {
         }

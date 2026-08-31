@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
+import { useSession } from 'next-auth/react'
 
 interface ReferralData {
   referralCode: string
@@ -34,6 +35,7 @@ interface BonusInfo {
 export default function CustomerReferralsPage() {
   const router = useRouter()
   const toast = useToast()
+  const { data: session, status } = useSession()
   const [referralData, setReferralData] = useState<ReferralData | null>(null)
   const [loading, setLoading] = useState(true)
   const [sharing, setSharing] = useState(false)
@@ -43,25 +45,23 @@ export default function CustomerReferralsPage() {
   const [sendingInvite, setSendingInvite] = useState(false)
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || ''
-    const name = localStorage.getItem('userName') || 'Customer'
-    setUserEmail(email)
-    setUserName(name)
-    
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated' || session?.user?.role !== 'CUSTOMER') {
+      router.push('/auth/signin')
+      return
+    }
+
+    if (session?.user) {
+      setUserEmail(session.user.email || '')
+      setUserName(session.user.firstName ? `${session.user.firstName} ${session.user.lastName}` : 'Customer')
+    }
+
     fetchReferralData()
-  }, [])
+  }, [status, session, router])
 
   const fetchReferralData = async () => {
     try {
-      const userId = localStorage.getItem('userId')
-      const userRole = localStorage.getItem('userRole')
-      const userEmail = localStorage.getItem('userEmail')
-
-      if (!userId || userRole !== 'CUSTOMER') {
-        router.push('/auth/signin')
-        return
-      }
-
       const response = await fetch('/api/customer/referrals', {
         headers: {
         }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
+import { useSession } from 'next-auth/react'
 
 interface Order {
   id: string
@@ -47,38 +48,34 @@ interface OrderItem {
 export default function CurrentOrdersPage() {
   const router = useRouter()
   const toast = useToast()
+  const { data: session, status } = useSession()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || ''
-    const name = localStorage.getItem('userName') || 'Customer'
-    setUserEmail(email)
-    setUserName(name)
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated' || session?.user?.role !== 'CUSTOMER') {
+      router.push('/auth/signin')
+      return
+    }
+
+    if (session?.user) {
+      setUserEmail(session.user.email || '')
+      setUserName(session.user.firstName ? `${session.user.firstName} ${session.user.lastName}` : 'Customer')
+    }
 
     fetchCurrentOrders()
-  }, [])
+  }, [status, session, router])
 
   const fetchCurrentOrders = async () => {
     try {
-      const userId = localStorage.getItem('userId')
-      const userRole = localStorage.getItem('userRole')
-      const userEmail = localStorage.getItem('userEmail')
-
-      if (!userId || userRole !== 'CUSTOMER') {
-        router.push('/auth/signin')
-        return
-      }
-
       // Fetch orders that are not completed or cancelled
       const statuses = ['PAYMENT_PENDING', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'DELIVERED']
       const orderPromises = statuses.map(status =>
-        fetch(`/api/customer/orders?status=${status}&limit=50`, {
-          headers: {
-          }
-        }).then(res => res.ok ? res.json() : { orders: [] })
+        fetch(`/api/customer/orders?status=${status}&limit=50`).then(res => res.ok ? res.json() : { orders: [] })
       )
 
       const results = await Promise.all(orderPromises)

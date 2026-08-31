@@ -25,19 +25,7 @@ export async function GET(request: NextRequest) {
     try {
       // Verify store exists
       const store = await prisma.store.findUnique({ 
-        where: { id: storeId },
-        include: {
-          franchise: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              isActive: true,
-              createdAt: true,
-              updatedAt: true
-            }
-          }
-        }
+        where: { id: storeId }
       })
       
       if (!store) {
@@ -89,8 +77,7 @@ export async function GET(request: NextRequest) {
         },
         store: {
           id: store.id,
-          name: store.name,
-          franchise: store.franchise.name
+          name: store.name
         }
       })
     } catch (dbError) {

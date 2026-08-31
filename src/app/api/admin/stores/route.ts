@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const stores = await prisma.store.findMany({
-      include: { 
+      include: {
         admin: {
           select: {
             id: true,
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: 'desc' }
     })
-    
+
     return NextResponse.json(stores)
   } catch (err) {
     console.error('stores GET error', err)
@@ -47,13 +47,13 @@ export async function POST(req: Request) {
     if (auth instanceof NextResponse && auth.status === 401) return auth
 
     const body = await req.json()
-    const { 
-      name, 
-      address, 
-      city, 
-      state, 
-      pincode, 
-      phone, 
+    const {
+      name,
+      address,
+      city,
+      state,
+      pincode,
+      phone,
       managerFirstName,
       managerLastName,
       managerEmail,
@@ -66,8 +66,8 @@ export async function POST(req: Request) {
     }
 
     if (!managerFirstName || !managerLastName || !managerEmail || !managerPhone) {
-      return NextResponse.json({ 
-        error: 'Store manager details (first name, last name, email, and phone) are required' 
+      return NextResponse.json({
+        error: 'Store manager details (first name, last name, email, and phone) are required'
       }, { status: 400 })
     }
 
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     let admin = null
     let isNewAdmin = false
-    
+
     // Check if user already exists
     admin = await prisma.user.findUnique({
       where: { email: managerEmail },
@@ -90,12 +90,12 @@ export async function POST(req: Request) {
         role: true
       }
     })
-    
+
     if (admin) {
       // Update existing user to STORE_ADMIN role and update details
       admin = await prisma.user.update({
         where: { id: admin.id },
-        data: { 
+        data: {
           role: UserRole.STORE_ADMIN,
           firstName: managerFirstName,
           lastName: managerLastName,
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       const duplicateCheck = await checkUserDuplicates(managerEmail, managerPhone)
       if (duplicateCheck.isDuplicate) {
         const errorMessage = getDuplicateErrorMessage(duplicateCheck)
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: errorMessage,
           field: duplicateCheck.field,
           type: 'duplicate'
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       // Generate a temporary password for the new admin
       const tempPassword = generateTempPassword()
       const hashedPassword = await hashPassword(tempPassword)
-      
+
       // Create new STORE_ADMIN user
       admin = await prisma.user.create({
         data: {
@@ -144,10 +144,10 @@ export async function POST(req: Request) {
         }
       })
       isNewAdmin = true
-      
+
       // Send welcome email with temporary password
       await sendWelcomeEmail(managerEmail, managerFirstName, managerLastName, tempPassword, 'Store Manager')
-      
+
       // Create password reset token for first login
       const resetToken = generateResetToken()
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days

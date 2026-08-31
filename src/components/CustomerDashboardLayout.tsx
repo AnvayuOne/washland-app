@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import UnifiedSidebar from '@/components/UnifiedSidebar'
+import { useSession } from 'next-auth/react'
 
 interface CustomerDashboardLayoutProps {
   children: React.ReactNode
@@ -26,7 +27,29 @@ export default function CustomerDashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
+  const { data: session, status } = useSession()
+
   const checkAuth = useCallback(() => {
+    if (status === 'loading') return
+
+    // If we have an authenticated session, prioritize it
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'CUSTOMER') {
+        toast.error('Access Denied', 'Customer access required')
+        router.push('/auth/signin')
+        return
+      }
+
+      setUser({
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.firstName ? `${session.user.firstName} ${session.user.lastName}` : (userName || 'Customer')
+      })
+      setLoading(false)
+      return
+    }
+
+    // Fallback to local storage only if unauthenticated (NextAuth finished checking)
     const userRole = localStorage.getItem('userRole')
     const userId = localStorage.getItem('userId')
     const storedEmail = localStorage.getItem('userEmail')
@@ -49,11 +72,11 @@ export default function CustomerDashboardLayout({
       name: userName || 'Customer'
     })
     setLoading(false)
-  }, [router, userEmail, userName]) // Remove toast from dependencies
+  }, [router, status, session, userEmail, userName, toast])
 
   useEffect(() => {
     checkAuth()
-  }, [])
+  }, [checkAuth])
 
   useEffect(() => {
     setMobileOpen(false)

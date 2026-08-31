@@ -11,7 +11,6 @@ const userResponseSelect = {
   phone: true,
   role: true,
   isActive: true,
-  storeId: true,
   createdAt: true,
   updatedAt: true,
   managedStores: {
@@ -194,16 +193,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       select: {
         id: true,
         role: true,
-        managedFranchises: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true
-          }
-        },
         managedStores: {
           select: {
             id: true
@@ -232,13 +221,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (existingUser._count.orders > 0) {
       return NextResponse.json({ 
         error: 'Cannot delete user with existing orders. Please transfer orders first.' 
-      }, { status: 400 })
-    }
-
-    // Check if user manages franchises
-    if (existingUser.managedFranchises.length > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete user who manages franchises. Please assign a new admin first.' 
       }, { status: 400 })
     }
 

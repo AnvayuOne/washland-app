@@ -42,16 +42,7 @@ export async function POST(
         user: {
           select: { id: true, firstName: true, lastName: true },
         },
-        store: {
-          include: {
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        store: true,
       },
     })
 
@@ -94,16 +85,7 @@ export async function POST(
             phone: true,
           },
         },
-        store: {
-          include: {
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        store: true,
         address: true,
         items: {
           include: {

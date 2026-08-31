@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState('')
@@ -70,28 +71,24 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
-              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Invalid Reset Link
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              This password reset link is invalid or has expired.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/auth/forgot-password"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Request a new password reset
-              </Link>
-            </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ position: 'relative', overflow: 'visible' }}>
+        <div className="card" style={{ maxWidth: "420px", width: "100%", textAlign: "center" }}>
+          <div style={{ color: "#dc2626", marginBottom: "0.75rem", display: 'flex', justifyContent: 'center' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "0.5rem", color: "#111827" }}>
+            Invalid Reset Link
+          </h2>
+          <p style={{ color: "#6b7280", marginBottom: "1rem", fontSize: "0.875rem" }}>
+            This password reset link is invalid or has expired.
+          </p>
+          <div style={{ marginTop: "1rem" }}>
+            <Link
+              href="/auth/forgot-password"
+              style={{ fontSize: '0.875rem', color: '#1e40af', textDecoration: 'none', fontWeight: 500 }}
+            >
+              Request a new password reset
+            </Link>
           </div>
         </div>
       </div>
@@ -99,89 +96,94 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
+    <div className="min-h-screen flex items-center justify-center" style={{ position: 'relative', overflow: 'visible' }}>
+      <div className="card" style={{ maxWidth: "420px", width: "100%", position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="text-center mb-6" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <Image src="/logo.png" alt="Washland" width={140} height={56} style={{ objectFit: 'contain' }} />
+            <p className="text-gray-600 mt-2">Set new password</p>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Set new password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your new password below.
-          </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="password" className="sr-only">
-                New Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="New password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm New Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              New Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                outline: "none"
+              }}
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="input-field"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                outline: "none"
+              }}
+              required
+            />
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+              {error}
             </div>
           )}
 
           {message && (
-            <div className="rounded-md bg-green-50 p-4">
-              <div className="text-sm text-green-700">{message}</div>
+            <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded">
+              {message}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Resetting...' : 'Reset password'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Back to sign in
-            </Link>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn-primary"
+            style={{
+              width: "100%",
+              backgroundColor: isLoading ? "#9ca3af" : "#1e40af",
+              color: "white",
+              fontWeight: "500",
+              padding: "0.75rem 2rem",
+              borderRadius: "0.5rem",
+              border: "none",
+              cursor: isLoading ? "not-allowed" : "pointer"
+            }}
+          >
+            {isLoading ? "Resetting..." : "Reset Password"}
+          </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/auth/signin" style={{ fontSize: '0.875rem', color: '#1e40af', textDecoration: 'none' }}>
+            Back to sign in
+          </Link>
+        </div>
       </div>
     </div>
   )

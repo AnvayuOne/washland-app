@@ -8,7 +8,7 @@ declare module "next-auth" {
     lastName: string
     role: UserRole
     storeId?: string | null
-    managedStores?: any[]
+    managedStoreIds?: string[]
   }
 
   interface Session {
@@ -19,7 +19,7 @@ declare module "next-auth" {
       lastName: string
       role: UserRole
       storeId?: string | null
-      managedStores?: any[]
+      managedStoreIds?: string[]
     }
   }
 }
@@ -30,6 +30,6 @@ declare module "next-auth/jwt" {
     firstName: string
     lastName: string
     storeId?: string | null
-    managedStores?: any[]
+    managedStoreIds?: string[]
   }
 }

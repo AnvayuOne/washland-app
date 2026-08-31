@@ -21,20 +21,7 @@ export async function GET(req: Request) {
       include: {
         storeServices: {
           include: {
-            store: {
-              include: {
-                franchise: {
-                  select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                    isActive: true,
-                    createdAt: true,
-                    updatedAt: true
-                  }
-                }
-              }
-            }
+            store: true
           }
         },
         _count: {
@@ -109,20 +96,7 @@ export async function POST(req: Request) {
         serviceCategory: true,
         storeServices: {
           include: {
-            store: {
-              include: {
-                franchise: {
-                  select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                    isActive: true,
-                    createdAt: true,
-                    updatedAt: true
-                  }
-                }
-              }
-            }
+            store: true
           }
         },
         _count: {

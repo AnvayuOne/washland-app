@@ -23,12 +23,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           select: {
             id: true,
             name: true,
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
         movements: {

@@ -23,7 +23,7 @@ export interface TenantScope {
 }
 
 export function getScope(user: SessionUser): TenantScope {
-  const managedStoreIds = normalizeIdList((user.managedStores ?? []) as SelectOption[])
+  const managedStoreIds = user.managedStoreIds ?? []
   const storeId = user.storeId ?? managedStoreIds[0] ?? null
 
   return {

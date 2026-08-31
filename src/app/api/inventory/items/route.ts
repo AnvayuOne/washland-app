@@ -36,12 +36,6 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
         _count: {

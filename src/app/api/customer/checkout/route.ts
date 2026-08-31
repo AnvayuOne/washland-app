@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { computeOrderItems, computeOrderTotals, normalizeCurrencyCode } from "@/lib/order-totals"
+import { getPrimaryStoreId } from "@/lib/tenant"
 
 function generateOrderNumber() {
   return `WL-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
@@ -82,7 +83,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!activeCart.storeId) {
-      return NextResponse.json({ error: "Please select a store before checkout" }, { status: 400 })
+      const resolvedStoreId = await getPrimaryStoreId().catch(() => null)
+      if (!resolvedStoreId) {
+        return NextResponse.json({ error: "No active store available for checkout" }, { status: 400 })
+      }
+      await prisma.cart.update({
+        where: { id: activeCart.id },
+        data: { storeId: resolvedStoreId },
+      })
+      activeCart.storeId = resolvedStoreId
     }
 
     if (activeCart.items.length < 1) {

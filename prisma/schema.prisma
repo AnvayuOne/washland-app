@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,16 +7,495 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  description String
+  userId      String?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  user        User?        @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}
+
+model User {
+  id                    String               @id @default(cuid())
+  email                 String               @unique
+  password              String
+  firstName             String
+  lastName              String
+  phone                 String?
+  role                  UserRole             @default(CUSTOMER)
+  isActive              Boolean              @default(true)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  isAvailable           Boolean              @default(true)
+  referralCode          String?              @unique
+  activities            Activity[]
+  addresses             Address[]
+  carts                 Cart[]
+  franchises            franchises[]
+  inventoryItemsCreated InventoryItem[]      @relation("InventoryCreatedBy")
+  inventoryMovements    InventoryMovement[]  @relation("InventoryMovedBy")
+  loyaltyPoints         LoyaltyPoint[]
+  deliveryOrders        Order[]              @relation("OrderDeliveryRider")
+  pickupOrders          Order[]              @relation("OrderPickupRider")
+  orders                Order[]
+  passwordResetTokens   PasswordResetToken[]
+  referralReceived      Referral?            @relation("ReferralReferred")
+  referralsSent         Referral[]           @relation("ReferralReferrer")
+  managedStores         Store[]              @relation("StoreAdmin")
+  subscriptions         Subscription[]
+  wallet                Wallet?
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Store {
+  id                 String              @id @default(cuid())
+  name               String
+  address            String
+  city               String
+  state              String
+  zipCode            String
+  phone              String
+  email              String?
+  franchiseId        String
+  adminId            String
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  carts              Cart[]
+  inventoryItems     InventoryItem[]
+  inventoryMovements InventoryMovement[]
+  orders             Order[]
+  storeServices      StoreService[]
+  admin              User                @relation("StoreAdmin", fields: [adminId], references: [id])
+  franchises         franchises          @relation(fields: [franchiseId], references: [id])
+  subscriptionPlans  SubscriptionPlan[]
+  subscriptions      Subscription[]
+
+  @@map("stores")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  orders    Order[]
+
+  @@map("addresses")
+}
+
+model Service {
+  id                 String               @id @default(cuid())
+  name               String
+  description        String?
+  basePrice          Decimal
+  category           String
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  categoryId         String?
+  cartItems          CartItem[]
+  franchise_services franchise_services[]
+  orderItems         OrderItem[]
+  serviceCategory    ServiceCategory?     @relation(fields: [categoryId], references: [id])
+  storeServices      StoreService[]
+  subscriptionItems  SubscriptionItem[]
+
+  @@index([categoryId])
+  @@map("services")
+}
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+
+  @@map("service_categories")
+}
+
+model StoreService {
+  id        String  @id @default(cuid())
+  storeId   String
+  serviceId String
+  price     Decimal
+  isActive  Boolean @default(true)
+  service   Service @relation(fields: [serviceId], references: [id])
+  store     Store   @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, serviceId])
+  @@map("store_services")
+}
+
+model SubscriptionPlan {
+  id                String               @id @default(cuid())
+  name              String
+  description       String?
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  planType          SubscriptionPlanType @default(CUSTOM)
+  billingCycle      BillingCycle         @default(MONTHLY)
+  price             Decimal
+  currency          String               @default("INR")
+  benefitsJson      Json?
+  storeId           String?
+  subscriptionItems SubscriptionItem[]
+  store             Store?               @relation(fields: [storeId], references: [id])
+  subscriptions     Subscription[]
+
+  @@index([isActive])
+  @@index([storeId, isActive])
+  @@map("subscription_plans")
+}
+
+model SubscriptionItem {
+  id        String           @id @default(cuid())
+  planId    String
+  serviceId String
+  quantity  Int
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+  service   Service          @relation(fields: [serviceId], references: [id])
+
+  @@unique([planId, serviceId])
+  @@map("subscription_items")
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  userId    String
+  planId    String
+  status    SubscriptionStatus @default(ACTIVE)
+  startAt   DateTime
+  endAt     DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  storeId   String
+  renewAt   DateTime?
+  autoRenew Boolean            @default(true)
+  plan      SubscriptionPlan   @relation(fields: [planId], references: [id])
+  store     Store              @relation(fields: [storeId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([storeId, status])
+  @@map("subscriptions")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  storeId   String?
+  status    CartStatus @default(ACTIVE)
+  currency  String     @default("INR")
+  subtotal  Decimal    @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  items     CartItem[]
+  store     Store?     @relation(fields: [storeId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  serviceId String
+  quantity  Int
+  unitPrice Decimal
+  lineTotal Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  @@unique([cartId, serviceId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  orderNumber           String        @unique
+  userId                String
+  storeId               String
+  addressId             String
+  status                OrderStatus   @default(PENDING)
+  paymentStatus         PaymentStatus @default(PENDING)
+  totalAmount           Decimal
+  pickupDate            DateTime?
+  deliveryDate          DateTime?
+  specialInstructions   String?
+  stripePaymentIntentId String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deliveryRiderId       String?
+  pickupRiderId         String?
+  idempotencyKey        String?
+  currency              String        @default("INR")
+  subtotal              Decimal       @default(0)
+  discount              Decimal       @default(0)
+  tax                   Decimal       @default(0)
+  total                 Decimal       @default(0)
+  pickedUpAt            DateTime?
+  deliveredAt           DateTime?
+  items                 OrderItem[]
+  address               Address       @relation(fields: [addressId], references: [id])
+  deliveryRider         User?         @relation("OrderDeliveryRider", fields: [deliveryRiderId], references: [id])
+  pickupRider           User?         @relation("OrderPickupRider", fields: [pickupRiderId], references: [id])
+  store                 Store         @relation(fields: [storeId], references: [id])
+  user                  User          @relation(fields: [userId], references: [id])
+
+  @@unique([userId, idempotencyKey])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  serviceId String
+  quantity  Int
+  price     Decimal
+  notes     String?
+  unitPrice Decimal @default(0)
+  lineTotal Decimal @default(0)
+  order     Order   @relation(fields: [orderId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@map("order_items")
+}
+
+model HeroContent {
+  id               String      @id @default(cuid())
+  title            String
+  subtitle         String
+  description      String?
+  primaryBtnText   String      @default("Book Service Now")
+  primaryBtnLink   String      @default("/book-service")
+  secondaryBtnText String      @default("Find Stores")
+  secondaryBtnLink String      @default("/locations")
+  isActive         Boolean     @default(false)
+  displayOrder     Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  images           HeroImage[]
+  offers           HeroOffer[]
+
+  @@map("hero_content")
+}
+
+model HeroImage {
+  id            String      @id @default(cuid())
+  heroContentId String
+  imageUrl      String
+  altText       String
+  position      String      @default("right")
+  displayOrder  Int         @default(0)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  heroContent   HeroContent @relation(fields: [heroContentId], references: [id], onDelete: Cascade)
+
+  @@map("hero_images")
+}
+
+model HeroOffer {
+  id            String      @id @default(cuid())
+  heroContentId String
+  title         String
+  description   String?
+  discountText  String?
+  imageUrl      String?
+  linkUrl       String?
+  isActive      Boolean     @default(true)
+  displayOrder  Int         @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  heroContent   HeroContent @relation(fields: [heroContentId], references: [id], onDelete: Cascade)
+
+  @@map("hero_offers")
+}
+
+model Referral {
+  id         String         @id @default(cuid())
+  code       String         @unique
+  referrerId String
+  referredId String?        @unique
+  status     ReferralStatus @default(PENDING)
+  createdAt  DateTime       @default(now())
+  rewardedAt DateTime?
+  referred   User?          @relation("ReferralReferred", fields: [referredId], references: [id])
+  referrer   User           @relation("ReferralReferrer", fields: [referrerId], references: [id])
+
+  @@map("referrals")
+}
+
+model LoyaltyPoint {
+  id        String    @id @default(cuid())
+  userId    String
+  points    Int
+  source    String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("loyalty_points")
+}
+
+model Wallet {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  balance      Decimal
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  transactions WalletTransaction[]
+  user         User                @relation(fields: [userId], references: [id])
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id        String       @id @default(cuid())
+  walletId  String
+  type      WalletTxType
+  amount    Decimal
+  source    String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  wallet    Wallet       @relation(fields: [walletId], references: [id])
+
+  @@map("wallet_transactions")
+}
+
+model LoyaltyConfiguration {
+  id                     String   @id @default(cuid())
+  pointsPerOrderCurrency Int      @default(1)
+  pointsForSignUp        Int      @default(50)
+  pointsForReferral      Int      @default(100)
+  minOrderForPoints      Int      @default(0)
+  isActive               Boolean  @default(true)
+  updatedAt              DateTime @updatedAt
+
+  @@map("loyalty_configuration")
+}
+
+model InventoryItem {
+  id            String              @id @default(cuid())
+  storeId       String
+  name          String
+  sku           String?
+  type          InventoryItemType   @default(CONSUMABLE)
+  unit          String              @default("UNIT")
+  currentStock  Decimal             @default(0)
+  reorderLevel  Decimal             @default(0)
+  maxStockLevel Decimal?
+  costPerUnit   Decimal?
+  notes         String?
+  isActive      Boolean             @default(true)
+  createdById   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdBy     User?               @relation("InventoryCreatedBy", fields: [createdById], references: [id])
+  store         Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  movements     InventoryMovement[]
+
+  @@unique([storeId, name])
+  @@index([storeId, isActive])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String                @id @default(cuid())
+  inventoryItemId String
+  storeId         String
+  type            InventoryMovementType
+  quantity        Decimal
+  stockBefore     Decimal
+  stockAfter      Decimal
+  unitCost        Decimal?
+  totalCost       Decimal?
+  note            String?
+  reference       String?
+  createdById     String?
+  createdAt       DateTime              @default(now())
+  createdBy       User?                 @relation("InventoryMovedBy", fields: [createdById], references: [id])
+  inventoryItem   InventoryItem         @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryItemId, createdAt])
+  @@index([storeId, createdAt])
+  @@map("inventory_movements")
+}
+
+model franchise_services {
+  id           String     @id
+  franchiseId  String
+  serviceId    String
+  defaultPrice Decimal?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+  franchises   franchises @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  services     Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([franchiseId, serviceId])
+  @@index([franchiseId, isActive])
+  @@index([serviceId])
+}
+
+model franchises {
+  id                 String               @id
+  name               String
+  description        String?
+  adminId            String
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  commissionRate     Decimal              @default(0.10) @db.Decimal(5, 4)
+  franchise_services franchise_services[]
+  users              User                 @relation(fields: [adminId], references: [id])
+  stores             Store[]
+}
+
 enum UserRole {
   SUPER_ADMIN
   FRANCHISE_ADMIN
   STORE_ADMIN
-  RIDER
   CUSTOMER
+  RIDER
 }
 
 enum OrderStatus {
-  PAYMENT_PENDING
   PENDING
   CONFIRMED
   IN_PROGRESS
@@ -27,6 +503,7 @@ enum OrderStatus {
   DELIVERED
   COMPLETED
   CANCELLED
+  PAYMENT_PENDING
 }
 
 enum PaymentStatus {
@@ -38,10 +515,10 @@ enum PaymentStatus {
 
 enum SubscriptionStatus {
   ACTIVE
-  PAYMENT_PENDING
   PAUSED
   CANCELLED
   EXPIRED
+  PAYMENT_PENDING
 }
 
 enum SubscriptionPlanType {
@@ -75,362 +552,6 @@ enum ActivityType {
   RIDER_STATUS_UPDATE
 }
 
-model Activity {
-  id          String       @id @default(cuid())
-  type        ActivityType
-  description String
-  userId      String?
-  user        User?        @relation(fields: [userId], references: [id])
-  metadata    Json?
-  createdAt   DateTime     @default(now())
-
-  @@map("activities")
-}
-
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  firstName     String
-  lastName      String
-  phone         String?
-  role          UserRole  @default(CUSTOMER)
-  isActive      Boolean   @default(true)
-  isAvailable   Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  referralCode  String?   @unique // Personal referral code for this user
-
-  // Customer specific
-  addresses     Address[]
-  orders        Order[]
-  carts         Cart[]
-  subscriptions Subscription[]
-
-  // Admin associations
-  managedStores     Store[]     @relation("StoreAdmin")
-
-  // Rider associations
-  pickupOrders  Order[]     @relation("OrderPickupRider")
-  deliveryOrders Order[]    @relation("OrderDeliveryRider")
-
-  // Referral & loyalty relations
-  referralsSent     Referral[]  @relation("ReferralReferrer")
-  referralReceived  Referral?   @relation("ReferralReferred")
-  loyaltyPoints     LoyaltyPoint[]
-  wallet            Wallet?
-  inventoryItemsCreated InventoryItem[]     @relation("InventoryCreatedBy")
-  inventoryMovements    InventoryMovement[] @relation("InventoryMovedBy")
-
-  activities         Activity[]
-  passwordResetTokens PasswordResetToken[]
-
-  @@map("users")
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@map("password_reset_tokens")
-}
-
-model Store {
-  id           String    @id @default(cuid())
-  name         String
-  address      String
-  city         String
-  state        String
-  zipCode      String
-  phone        String
-  email        String?
-  adminId      String
-  admin        User      @relation("StoreAdmin", fields: [adminId], references: [id])
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  orders       Order[]
-  carts        Cart[]
-  storeServices StoreService[]
-  subscriptionPlans SubscriptionPlan[]
-  subscriptions Subscription[]
-  inventoryItems InventoryItem[]
-  inventoryMovements InventoryMovement[]
-
-  @@map("stores")
-}
-
-model Address {
-  id         String  @id @default(cuid())
-  userId     String
-  user       User    @relation(fields: [userId], references: [id])
-  title      String  // e.g., "Home", "Office"
-  street     String
-  city       String
-  state      String
-  zipCode    String
-  isDefault  Boolean @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  orders     Order[]
-
-  @@map("addresses")
-}
-
-model Service {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  basePrice   Decimal  // Changed from Decimal for SQLite compatibility
-  category    String   // @deprecated - will replace with relation
-  categoryId  String?
-  serviceCategory ServiceCategory? @relation(fields: [categoryId], references: [id])
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  storeServices StoreService[]
-  orderItems    OrderItem[]
-  cartItems     CartItem[]
-  subscriptionItems SubscriptionItem[]
-
-  @@map("services")
-}
-
-model ServiceCategory {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String?
-  imageUrl    String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  services    Service[]
-
-  @@map("service_categories")
-}
-
-model StoreService {
-  id        String  @id @default(cuid())
-  storeId   String
-  store     Store   @relation(fields: [storeId], references: [id])
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
-  price     Decimal   // Changed from Decimal for SQLite compatibility
-  isActive  Boolean @default(true)
-
-  @@unique([storeId, serviceId])
-  @@map("store_services")
-}
-
-model SubscriptionPlan {
-  id               String               @id @default(cuid())
-  name             String
-  description      String?
-  planType         SubscriptionPlanType
-  billingCycle     BillingCycle
-  price            Decimal
-  currency         String               @default("INR")
-  benefitsJson     Json?
-  isActive         Boolean              @default(true)
-  storeId          String?
-  store            Store?               @relation(fields: [storeId], references: [id])
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-
-  subscriptions    Subscription[]
-  subscriptionItems SubscriptionItem[]
-
-  @@index([isActive])
-  @@index([storeId, isActive])
-
-  @@map("subscription_plans")
-}
-
-model SubscriptionItem {
-  id           String           @id @default(cuid())
-  planId       String
-  plan         SubscriptionPlan @relation(fields: [planId], references: [id])
-  serviceId    String
-  service      Service          @relation(fields: [serviceId], references: [id])
-  quantity     Int              // included quantity per month
-  
-  @@unique([planId, serviceId])
-  @@map("subscription_items")
-}
-
-model Subscription {
-  id          String             @id @default(cuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id])
-  planId      String
-  plan        SubscriptionPlan   @relation(fields: [planId], references: [id])
-  storeId     String
-  store       Store              @relation(fields: [storeId], references: [id])
-  status      SubscriptionStatus @default(PAYMENT_PENDING)
-  startAt     DateTime
-  endAt       DateTime?
-  renewAt     DateTime?
-  autoRenew   Boolean            @default(true)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-
-  @@index([userId, status])
-  @@index([storeId, status])
-
-  @@map("subscriptions")
-}
-
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
-  storeId   String?
-  store     Store?     @relation(fields: [storeId], references: [id])
-  status    CartStatus @default(ACTIVE)
-  currency  String     @default("INR")
-  subtotal  Decimal    @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  items     CartItem[]
-
-  @@index([userId, status])
-  @@map("carts")
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id])
-  serviceId String
-  service   Service  @relation(fields: [serviceId], references: [id])
-  quantity  Int
-  unitPrice Decimal
-  lineTotal Decimal
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([cartId, serviceId])
-  @@index([cartId])
-  @@map("cart_items")
-}
-
-model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  idempotencyKey  String?
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
-  storeId         String
-  store           Store         @relation(fields: [storeId], references: [id])
-  addressId       String
-  address         Address       @relation(fields: [addressId], references: [id])
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(PENDING)
-  currency        String        @default("INR")
-  subtotal        Decimal       @default(0)
-  discount        Decimal       @default(0)
-  tax             Decimal       @default(0)
-  total           Decimal       @default(0)
-  totalAmount     Decimal         // Changed from Decimal for SQLite compatibility
-  pickupDate      DateTime?
-  deliveryDate    DateTime?
-  pickedUpAt      DateTime?
-  deliveredAt     DateTime?
-  specialInstructions String?
-  stripePaymentIntentId String?
-  
-  // Rider assignments
-  pickupRiderId   String?
-  pickupRider     User?         @relation("OrderPickupRider", fields: [pickupRiderId], references: [id])
-  deliveryRiderId String?
-  deliveryRider   User?         @relation("OrderDeliveryRider", fields: [deliveryRiderId], references: [id])
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  items           OrderItem[]
-
-  @@unique([userId, idempotencyKey])
-  @@map("orders")
-}
-
-model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
-  quantity  Int
-  unitPrice Decimal   @default(0)
-  lineTotal Decimal   @default(0)
-  price     Decimal   // Changed from Decimal for SQLite compatibility
-  notes     String?
-
-  @@map("order_items")
-}
-
-model HeroContent {
-  id             String   @id @default(cuid())
-  title          String
-  subtitle       String
-  description    String?
-  primaryBtnText String   @default("Book Service Now")
-  primaryBtnLink String   @default("/book-service")
-  secondaryBtnText String @default("Find Stores")
-  secondaryBtnLink String @default("/locations")
-  isActive       Boolean  @default(false)
-  displayOrder   Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  images         HeroImage[]
-  offers         HeroOffer[]
-
-  @@map("hero_content")
-}
-
-model HeroImage {
-  id            String      @id @default(cuid())
-  heroContentId String
-  heroContent   HeroContent @relation(fields: [heroContentId], references: [id], onDelete: Cascade)
-  imageUrl      String
-  altText       String
-  position      String      @default("right") // "left", "right", "center", "background"
-  displayOrder  Int         @default(0)
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@map("hero_images")
-}
-
-model HeroOffer {
-  id            String      @id @default(cuid())
-  heroContentId String
-  heroContent   HeroContent @relation(fields: [heroContentId], references: [id], onDelete: Cascade)
-  title         String
-  description   String?
-  discountText  String?     // e.g., "50% OFF", "SAVE ₹500"
-  imageUrl      String?
-  linkUrl       String?
-  isActive      Boolean     @default(true)
-  displayOrder  Int         @default(0)
-  expiresAt     DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@map("hero_offers")
-}
-
 enum ReferralStatus {
   PENDING
   REWARDED
@@ -459,117 +580,4 @@ enum InventoryMovementType {
   TRANSFER_IN
   TRANSFER_OUT
   MAINTENANCE
-}
-
-model Referral {
-  id          String         @id @default(cuid())
-  code        String         // Removed @unique to allow multiple uses of same code
-  referrerId  String
-  referrer    User           @relation("ReferralReferrer", fields: [referrerId], references: [id])
-  referredId  String?        @unique
-  referred    User?          @relation("ReferralReferred", fields: [referredId], references: [id])
-  status      ReferralStatus @default(PENDING)
-  createdAt   DateTime       @default(now())
-  rewardedAt  DateTime?
-
-  @@map("referrals")
-}
-
-model LoyaltyPoint {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  points     Int
-  source     String   // e.g., "ORDER", "REFERRAL", "MANUAL"
-  expiresAt  DateTime?
-  createdAt  DateTime @default(now())
-
-  @@map("loyalty_points")
-}
-
-model Wallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  balance   Decimal    // Changed from Decimal for SQLite compatibility
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions WalletTransaction[]
-
-  @@map("wallets")
-}
-
-model WalletTransaction {
-  id         String      @id @default(cuid())
-  walletId   String
-  wallet     Wallet      @relation(fields: [walletId], references: [id])
-  type       WalletTxType
-  amount     Decimal       // Changed from Decimal for SQLite compatibility
-  source     String?     // e.g., "REFERRAL_CREDIT", "ORDER_PAYMENT", "REFUND"
-  metadata   Json?     // Changed from Json for SQLite compatibility
-  createdAt  DateTime    @default(now())
-
-  @@map("wallet_transactions")
-}
-
-model LoyaltyConfiguration {
-  id                    String   @id @default(cuid())
-  pointsPerOrderCurrency Int     @default(1) // Points earned per currency unit spent
-  pointsForSignUp       Int      @default(50)
-  pointsForReferral     Int      @default(100)
-  minOrderForPoints     Int      @default(0)
-  isActive              Boolean  @default(true)
-  updatedAt             DateTime @updatedAt
-  
-  @@map("loyalty_configuration")
-}
-
-model InventoryItem {
-  id            String            @id @default(cuid())
-  storeId       String
-  store         Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name          String
-  sku           String?
-  type          InventoryItemType @default(CONSUMABLE)
-  unit          String            @default("UNIT")
-  currentStock  Decimal           @default(0)
-  reorderLevel  Decimal           @default(0)
-  maxStockLevel Decimal?
-  costPerUnit   Decimal?
-  notes         String?
-  isActive      Boolean           @default(true)
-  createdById   String?
-  createdBy     User?             @relation("InventoryCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
-  movements     InventoryMovement[]
-
-  @@unique([storeId, name])
-  @@index([storeId, isActive])
-  @@map("inventory_items")
-}
-
-model InventoryMovement {
-  id              String                @id @default(cuid())
-  inventoryItemId String
-  inventoryItem   InventoryItem         @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  storeId         String
-  store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  type            InventoryMovementType
-  quantity        Decimal
-  stockBefore     Decimal
-  stockAfter      Decimal
-  unitCost        Decimal?
-  totalCost       Decimal?
-  note            String?
-  reference       String?
-  createdById     String?
-  createdBy       User?                 @relation("InventoryMovedBy", fields: [createdById], references: [id])
-  createdAt       DateTime              @default(now())
-
-  @@index([inventoryItemId, createdAt])
-  @@index([storeId, createdAt])
-  @@map("inventory_movements")
 }

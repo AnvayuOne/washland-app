@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { randomBytes } from 'crypto'
 
 // Create email transporter
 const createTransporter = () => {
@@ -25,7 +26,7 @@ export function generateTempPassword(length: number = 12): string {
 
 // Generate a password reset token
 export function generateResetToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+  return randomBytes(32).toString('hex')
 }
 
 // Send password reset email

@@ -25,16 +25,7 @@ export async function GET(
             service: true,
           },
         },
-        store: {
-          include: {
-            franchise: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        store: true,
         address: true,
         pickupRider: {
           select: {
