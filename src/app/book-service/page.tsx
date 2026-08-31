@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import CustomerDashboardLayout from '@/components/CustomerDashboardLayout'
-import { useCurrentLocation } from '@/hooks/useCurrentLocation'
+import { useSession } from 'next-auth/react'
 
 interface CatalogService {
   id: string
@@ -19,14 +19,16 @@ interface CatalogService {
 
 export default function BookServicePage() {
   const router = useRouter()
-  const { fetchLocation: fetchPickupLocation, loading: pickupLocationLoading, error: pickupLocationError } = useCurrentLocation()
-  const { fetchLocation: fetchDeliveryLocation, loading: deliveryLocationLoading, error: deliveryLocationError } = useCurrentLocation()
-  const [sameAsPickup, setSameAsPickup] = useState(false)
+  const { data: session, status } = useSession()
+  const isLoggedIn = status === 'authenticated' && session?.user?.role === 'CUSTOMER'
+  const userInfo = {
+    name: session?.user?.firstName ? `${session.user.firstName} ${session.user.lastName}` : 'Customer',
+    email: session?.user?.email || ''
+  }
+
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [addingItemByService, setAddingItemByService] = useState<Record<string, boolean>>({})
   const [cartNotice, setCartNotice] = useState<string | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userInfo, setUserInfo] = useState<{name?: string, email?: string}>({})
   const [services, setServices] = useState<CatalogService[]>([])
   const [servicesLoading, setServicesLoading] = useState(true)
   const [servicesError, setServicesError] = useState<string | null>(null)
@@ -35,20 +37,8 @@ export default function BookServicePage() {
   const [priceFilter, setPriceFilter] = useState<"all" | "under-100" | "under-250" | "under-500" | "above-500">("all")
   const [sortBy, setSortBy] = useState<"relevance" | "price-asc" | "price-desc" | "name-asc">("relevance")
   const [showAllServices, setShowAllServices] = useState(false)
-  const [formData, setFormData] = useState({
-    pickupAddress: "",
-    pickupDate: "",
-    pickupTime: "",
-    deliveryAddress: "",
-    specialInstructions: ""
-  })
 
   useEffect(() => {
-    // Check if user is logged in
-    const userRole = localStorage.getItem('userRole')
-    const userId = localStorage.getItem('userId')
-    const userEmail = localStorage.getItem('userEmail')
-    const userName = localStorage.getItem('userName')
     const savedSelection = localStorage.getItem('bookService:selectedServices')
 
     if (savedSelection) {
@@ -60,14 +50,6 @@ export default function BookServicePage() {
       } catch (error) {
         console.error('Failed to parse saved service selection', error)
       }
-    }
-
-    if (userRole && userId) {
-      setIsLoggedIn(true)
-      setUserInfo({
-        name: userName || 'Customer',
-        email: userEmail || ''
-      })
     }
   }, [])
 
@@ -165,13 +147,6 @@ export default function BookServicePage() {
     return filteredServices.slice(0, 12)
   }, [filteredServices, showAllServices])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
-
   const handleAddToCart = async (serviceId: string) => {
     if (!isLoggedIn) {
       router.push('/auth/signin')
@@ -217,7 +192,6 @@ export default function BookServicePage() {
     e.preventDefault()
     
     if (!isLoggedIn) {
-      // This shouldn't happen since we check auth, but just in case
       router.push('/auth/signin')
       return
     }
@@ -227,10 +201,22 @@ export default function BookServicePage() {
       return
     }
 
-    // Here you would normally submit to an API
-    // For now, show success message and redirect to customer dashboard
-    alert("Booking submitted successfully! You will receive a confirmation email shortly.")
-    router.push('/customer/dashboard')
+    try {
+      // Add all selected services to cart
+      for (const serviceId of selectedServices) {
+        await fetch('/api/customer/cart/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serviceId, quantity: 1 })
+        })
+      }
+      
+      // Redirect to cart
+      router.push('/customer/cart')
+    } catch (error) {
+      console.error('Error adding services to cart:', error)
+      alert("Failed to add services to cart. Please try again.")
+    }
   }
 
   const bookingForm = (
@@ -531,333 +517,86 @@ export default function BookServicePage() {
             )}
           </div>
 
-          {/* Pickup Information */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "1rem", color: "#111827" }}>
-              Pickup Information
+          {/* Selected Services Summary & Proceed to Cart */}
+          <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "0.5rem", color: "#111827" }}>
+              Ready to Checkout?
             </h2>
-            <div style={{ display: "grid", gap: "1rem" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                  Pickup Address *
-                </label>
-                <input
-                  type="text"
-                  name="pickupAddress"
-                  value={formData.pickupAddress}
-                  onChange={handleInputChange}
-                  placeholder="Enter your pickup address"
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "0.5rem",
-                    outline: "none",
-                    boxSizing: "border-box"
-                  }}
-                  required
-                />
+            <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>
+              You have selected <strong>{selectedServices.length}</strong> service(s). Click below to add them to your cart and proceed to address selection and checkout.
+            </p>
 
-                {/* Use Current Location button */}
-                <button
-                  type="button"
-                  disabled={pickupLocationLoading}
-                  onClick={async () => {
-                    const loc = await fetchPickupLocation()
-                    if (loc) {
-                      const full = [loc.address, loc.city, loc.state, loc.pincode].filter(Boolean).join(', ')
-                      setFormData(prev => ({ ...prev, pickupAddress: full }))
-                      if (sameAsPickup) {
-                        setFormData(prev => ({ ...prev, pickupAddress: full, deliveryAddress: full }))
-                      }
-                    }
-                  }}
-                  style={{
-                    marginTop: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.45rem 0.9rem',
-                    backgroundColor: pickupLocationLoading ? '#e5e7eb' : '#eff6ff',
-                    color: pickupLocationLoading ? '#9ca3af' : '#2563eb',
-                    border: '1.5px solid',
-                    borderColor: pickupLocationLoading ? '#d1d5db' : '#bfdbfe',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    fontWeight: '500',
-                    cursor: pickupLocationLoading ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {pickupLocationLoading ? (
-                    <>
-                      <span style={{
-                        display: 'inline-block', width: 12, height: 12,
-                        border: '2px solid #9ca3af', borderTopColor: '#2563eb',
-                        borderRadius: '50%', animation: 'spin 0.8s linear infinite'
-                      }} />
-                      Detecting...
-                    </>
-                  ) : (
-                    <><span>📍</span> Use Current Location</>
-                  )}
-                </button>
-                {pickupLocationError && (
-                  <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: '#dc2626' }}>⚠️ {pickupLocationError}</p>
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                    Pickup Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="pickupDate"
-                    value={formData.pickupDate}
-                    onChange={handleInputChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0.5rem",
-                      outline: "none",
-                      boxSizing: "border-box"
-                    }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                    Pickup Time *
-                  </label>
-                  <select
-                    name="pickupTime"
-                    value={formData.pickupTime}
-                    onChange={(e) => handleInputChange(e as any)}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0.5rem",
-                      outline: "none",
-                      backgroundColor: "white",
-                      boxSizing: "border-box"
-                    }}
-                    required
-                  >
-                    <option value="">Select time</option>
-                    <option value="08:00">8:00 AM</option>
-                    <option value="09:00">9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                    <option value="12:00">12:00 PM</option>
-                    <option value="13:00">1:00 PM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="16:00">4:00 PM</option>
-                    <option value="17:00">5:00 PM</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Delivery Information */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "1rem", color: "#111827" }}>
-              Delivery Information
-            </h2>
+            {/* Submit Button */}
             <div>
-              {/* Same as Pickup toggle */}
-              <label style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                fontSize: '0.875rem', fontWeight: '500', color: '#374151',
-                marginBottom: '0.75rem', cursor: 'pointer'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={sameAsPickup}
-                  onChange={(e) => {
-                    setSameAsPickup(e.target.checked)
-                    if (e.target.checked) {
-                      setFormData(prev => ({ ...prev, deliveryAddress: prev.pickupAddress }))
-                    }
-                  }}
-                />
-                Same as Pickup Address
-              </label>
-
-              {!sameAsPickup && (
-                <>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                    Delivery Address
-                  </label>
-                  <input
-                    type="text"
-                    name="deliveryAddress"
-                    value={formData.deliveryAddress}
-                    onChange={handleInputChange}
-                    placeholder="Enter delivery address"
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0.5rem",
-                      outline: "none",
-                      boxSizing: "border-box"
-                    }}
-                  />
-                  {/* Use Current Location for delivery */}
+              {isLoggedIn ? (
+                <div>
                   <button
-                    type="button"
-                    disabled={deliveryLocationLoading}
-                    onClick={async () => {
-                      const loc = await fetchDeliveryLocation()
-                      if (loc) {
-                        const full = [loc.address, loc.city, loc.state, loc.pincode].filter(Boolean).join(', ')
-                        setFormData(prev => ({ ...prev, deliveryAddress: full }))
-                      }
-                    }}
-                    style={{
-                      marginTop: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      padding: '0.45rem 0.9rem',
-                      backgroundColor: deliveryLocationLoading ? '#e5e7eb' : '#eff6ff',
-                      color: deliveryLocationLoading ? '#9ca3af' : '#2563eb',
-                      border: '1.5px solid',
-                      borderColor: deliveryLocationLoading ? '#d1d5db' : '#bfdbfe',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      fontWeight: '500',
-                      cursor: deliveryLocationLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {deliveryLocationLoading ? (
-                      <>
-                        <span style={{
-                          display: 'inline-block', width: 12, height: 12,
-                          border: '2px solid #9ca3af', borderTopColor: '#2563eb',
-                          borderRadius: '50%', animation: 'spin 0.8s linear infinite'
-                        }} />
-                        Detecting...
-                      </>
-                    ) : (
-                      <><span>📍</span> Use Current Location</>
-                    )}
-                  </button>
-                  {deliveryLocationError && (
-                    <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: '#dc2626' }}>⚠️ {deliveryLocationError}</p>
-                  )}
-                </>
-              )}
-
-              {sameAsPickup && formData.pickupAddress && (
-                <p style={{ fontSize: '0.82rem', color: '#059669', marginTop: '0.25rem' }}>
-                  ✓ Delivery to: {formData.pickupAddress}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Special Instructions */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "1rem", color: "#111827" }}>
-              Special Instructions
-            </h2>
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.5rem" }}>
-                Additional Notes (Optional)
-              </label>
-              <textarea
-                name="specialInstructions"
-                value={formData.specialInstructions}
-                onChange={handleInputChange}
-                placeholder="Any special care instructions, stain details, or other notes..."
-                rows={4}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.5rem",
-                  outline: "none",
-                  resize: "vertical",
-                  boxSizing: "border-box"
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div style={{ textAlign: "center" }}>
-            {isLoggedIn ? (
-              // Logged in user - show booking button
-              <div>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ 
-                    fontSize: "1.125rem",
-                    padding: "1rem 2rem",
-                    minWidth: "200px"
-                  }}
-                >
-                  Book Now
-                </button>
-                <p style={{ 
-                  fontSize: "0.875rem", 
-                  color: "#6b7280", 
-                  marginTop: "1rem" 
-                }}>
-                  You will receive a confirmation email with tracking details
-                </p>
-              </div>
-            ) : (
-              // Not logged in - show sign in/sign up prompt
-              <div>
-                <div style={{ 
-                  padding: "1rem", 
-                  backgroundColor: "#fef3c7", 
-                  border: "1px solid #fbbf24", 
-                  borderRadius: "0.5rem", 
-                  marginBottom: "1rem",
-                  fontSize: "0.875rem",
-                  color: "#92400e"
-                }}>
-                  <strong>Note:</strong> You need to sign in or create an account to complete your booking.
-                </div>
-                
-                <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-                  <Link 
-                    href="/auth/signup" 
+                    type="submit"
                     className="btn-primary"
                     style={{ 
-                      textDecoration: "none", 
-                      fontSize: "1rem",
-                      padding: "0.75rem 1.5rem"
+                      fontSize: "1.125rem",
+                      padding: "1rem 2rem",
+                      minWidth: "220px",
+                      cursor: selectedServices.length === 0 ? "not-allowed" : "pointer",
+                      backgroundColor: selectedServices.length === 0 ? "#9ca3af" : "#1e40af"
                     }}
+                    disabled={selectedServices.length === 0}
                   >
-                    Sign Up to Book
-                  </Link>
-                  <Link 
-                    href="/auth/signin" 
-                    style={{ 
-                      backgroundColor: "transparent",
-                      color: "#1e40af",
-                      border: "1px solid #1e40af",
-                      fontWeight: "500",
-                      padding: "0.75rem 1.5rem",
-                      borderRadius: "0.5rem",
-                      textDecoration: "none",
-                      fontSize: "1rem"
-                    }}
-                  >
-                    Sign In
-                  </Link>
+                    Proceed to Cart & Checkout
+                  </button>
+                  <p style={{ 
+                    fontSize: "0.875rem", 
+                    color: "#6b7280", 
+                    marginTop: "1rem" 
+                  }}>
+                    Address and delivery scheduling will be completed securely at checkout.
+                  </p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div>
+                  <div style={{ 
+                    padding: "1rem", 
+                    backgroundColor: "#fef3c7", 
+                    border: "1px solid #fbbf24", 
+                    borderRadius: "0.5rem", 
+                    marginBottom: "1rem",
+                    fontSize: "0.875rem",
+                    color: "#92400e"
+                  }}>
+                    <strong>Note:</strong> You need to sign in or create an account to complete your booking.
+                  </div>
+                  
+                  <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+                    <Link 
+                      href="/auth/signup" 
+                      className="btn-primary"
+                      style={{ 
+                        textDecoration: "none", 
+                        fontSize: "1rem",
+                        padding: "0.75rem 1.5rem"
+                      }}
+                    >
+                      Sign Up to Book
+                    </Link>
+                    <Link 
+                      href="/auth/signin" 
+                      style={{ 
+                        backgroundColor: "transparent",
+                        color: "#1e40af",
+                        border: "1px solid #1e40af",
+                        fontWeight: "500",
+                        padding: "0.75rem 1.5rem",
+                        borderRadius: "0.5rem",
+                        textDecoration: "none",
+                        fontSize: "1rem"
+                      }}
+                    >
+                      Sign In
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </form>
